@@ -21,15 +21,6 @@ export default function SignUpPage() {
         }}
         redirectUrl="/dashboard"
       />
-      
-      <div className="text-center mt-6">
-        <p className="text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link href="/sign-in" className="text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </div>
     </div>
   );
 }
