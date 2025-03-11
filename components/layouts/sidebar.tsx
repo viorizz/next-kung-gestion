@@ -4,7 +4,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Home, 
+  Home,
+  Factory, 
   Briefcase, 
   Building2, 
   Package, 
@@ -37,9 +38,14 @@ const Sidebar = ({ className }: SidebarProps) => {
       icon: <Briefcase className="w-5 h-5" />,
     },
     {
+      name: 'Companies',
+      href: '/company',
+      icon: <Building2 className="w-5 h-5" />,
+    },
+    {
       name: 'Manufacturers',
       href: '/manufacturers',
-      icon: <Building2 className="w-5 h-5" />,
+      icon: <Factory className="w-5 h-5" />,
     },
     {
       name: 'Products',
