@@ -2,24 +2,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Hero } from '@/components/ui/hero';
+import { Header } from '@/components/header';
 
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b">
-        <div className="flex items-center">
-          <span className="text-xl font-bold">Kung Gestion</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/sign-in">
-            <Button variant="ghost">Sign In</Button>
-          </Link>
-          <Link href="/sign-up">
-            <Button>Sign Up</Button>
-          </Link>
-        </div>
-      </header>
+      <Header></Header>
 
       {/* Hero Section */}
       <main className="flex-1">
