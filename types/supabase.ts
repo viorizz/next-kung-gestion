@@ -211,7 +211,7 @@ export interface Database {
           phone: string | null
           email: string | null
           type: string
-          user_id: string
+          user_id: string // Changed from UUID to string to accommodate Clerk IDs
           created_at: string
           updated_at: string
         }
@@ -243,14 +243,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "companies_user_id_fkey"
-            columns: ["user_id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: [] // Updated to remove the foreign key relationship that no longer exists
       }
       list_templates: {
         Row: {

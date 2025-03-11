@@ -41,41 +41,56 @@ const mapCompanyToDbCompany = (company: CompanyFormData): Omit<DbCompanyInsert, 
 // Company services
 export const companyService = {
   // Create a new company
+  // lib/services/companyService.ts
+  // This update is focused only on the createCompany method to ensure it works with Clerk IDs
+
+  // In your companyService object, update the createCompany method to:
   async createCompany(companyData: CompanyFormData, userId: string): Promise<Company> {
     const dbCompanyData = mapCompanyToDbCompany(companyData);
     
+    // Ensure the userId is passed as a string
     const { data, error } = await supabase
       .from('companies')
-      .insert([{ ...dbCompanyData, user_id: userId }])
+      .insert([{ ...dbCompanyData, user_id: userId.toString() }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
     return mapDbCompanyToCompany(data);
   },
 
-  // Get all companies
+  // Similarly, update other methods that use userId:
   async getCompanies(userId: string): Promise<Company[]> {
     const { data, error } = await supabase
       .from('companies')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', userId.toString())
       .order('name', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
     return data.map(mapDbCompanyToCompany);
   },
 
-  // Get a single company by ID
-  async getCompany(companyId: string): Promise<Company> {
+  // And the getCompaniesByType method:
+  async getCompaniesByType(type: string, userId: string): Promise<Company[]> {
     const { data, error } = await supabase
       .from('companies')
       .select('*')
-      .eq('id', companyId)
-      .single();
+      .eq('type', type)
+      .eq('user_id', userId.toString())
+      .order('name', { ascending: true });
 
-    if (error) throw error;
-    return mapDbCompanyToCompany(data);
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+    return data.map(mapDbCompanyToCompany);
   },
 
   // Update a company
@@ -112,18 +127,5 @@ export const companyService = {
 
     if (error) throw error;
     return true;
-  },
-
-  // Get companies by type
-  async getCompaniesByType(type: string, userId: string): Promise<Company[]> {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('type', type)
-      .eq('user_id', userId)
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-    return data.map(mapDbCompanyToCompany);
   }
 };
