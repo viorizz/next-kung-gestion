@@ -46,23 +46,53 @@ export const companyService = {
   // This update is focused only on the createCompany method to ensure it works with Clerk IDs
 
   // In your companyService object, update the createCompany method to:
+  // lib/services/companyService.ts
+  // lib/services/companyService.ts
   async createCompany(companyData: CompanyFormData, userId: string): Promise<Company> {
-    const response = await fetch('/api/companies', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(mapCompanyToDbCompany(companyData)),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API error:', errorText);
-      throw new Error(`Failed to create company: ${errorText}`);
+    try {
+      // Convert frontend model to database model format expected by the API
+      const apiData = {
+        name: companyData.name,
+        street: companyData.street,
+        postal_code: companyData.postalCode, // Note the field name conversion
+        city: companyData.city,
+        country: companyData.country,
+        phone: companyData.phone || null,
+        email: companyData.email || null,
+        type: companyData.type
+      };
+      
+      const response = await fetch('/api/companies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      });
+      
+      // Try to parse JSON response, but handle case where it might not be JSON
+      let responseData;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error(`Server returned non-JSON response: ${text}`);
+      }
+      
+      if (!response.ok) {
+        console.error('API error response:', responseData);
+        throw new Error(`Failed to create company: ${
+          responseData.error || responseData.message || response.statusText
+        }`);
+      }
+      
+      return mapDbCompanyToCompany(responseData);
+    } catch (error) {
+      console.error('Error in createCompany:', error);
+      throw error;
     }
-    
-    const data = await response.json();
-    return mapDbCompanyToCompany(data);
   },
 
   // Similarly, update other methods that use userId:
