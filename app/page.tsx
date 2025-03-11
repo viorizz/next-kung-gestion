@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Hero } from '@/components/ui/hero';
-import { Header } from '@/components/header';
+import { Header } from '@/components/ui/header';
 
 export default function HomePage() {
   return (
