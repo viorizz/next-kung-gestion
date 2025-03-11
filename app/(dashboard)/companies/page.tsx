@@ -1,73 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { CompanyCard } from '@/components/ui/companycard';
 import { CompanyDialog } from '@/components/ui/companydialog';
-import { PlusIcon } from 'lucide-react';
-
-// Temporary type definition for Company
-type Company = {
-  id: string;
-  name: string;
-  street: string;
-  postalCode: string;
-  city: string;
-  country: string;
-  phone: string;
-  email: string;
-  type: string;
-};
+import { PlusIcon, Loader2 } from 'lucide-react';
+import { companyService } from '@/lib/services/companyService';
+import { Company, CompanyFormData } from '@/types/company';
+import { toast } from 'sonner';
 
 export default function CompaniesPage() {
+  const { user, isLoaded } = useUser();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  
-  // Temporary mock data
-  const [companies, setCompanies] = useState<Company[]>([
-    {
-      id: '1',
-      name: 'Küng & Associés SA',
-      street: 'Rue Des Granges 14',
-      postalCode: '1530',
-      city: 'Payerne',
-      country: 'Suisse',
-      phone: '+41266603177',
-      email: 'payerne@kung-sa.ch',
-      type: 'Engineer'
-    },
-    {
-      id: '2',
-      name: 'Ernest Gabella SA',
-      street: 'Rue Des Champs-Lovats 19',
-      postalCode: '1400',
-      city: 'Yverdon-les-Bains',
-      country: 'Suisse',
-      phone: '+41244241199',
-      email: 'info@gabella.ch',
-      type: 'Masonry'
-    }
-  ]);
 
-  const handleAddCompany = (company: Omit<Company, 'id'>) => {
-    // Generate a temporary ID (would be handled by the backend in a real app)
-    const newCompany = {
-      ...company,
-      id: Date.now().toString()
-    };
+  useEffect(() => {
+    // Fetch companies when user is loaded
+    if (isLoaded && user) {
+      fetchCompanies();
+    }
+  }, [isLoaded, user]);
+
+  const fetchCompanies = async () => {
+    if (!user) return;
     
-    setCompanies([...companies, newCompany]);
-    setIsAddDialogOpen(false);
+    setIsLoading(true);
+    try {
+      const data = await companyService.getCompanies(user.id);
+      setCompanies(data);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      toast.error('Une erreur est survenue lors du chargement des sociétés');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEditCompany = (company: Company) => {
-    setCompanies(companies.map(c => c.id === company.id ? company : c));
-    setEditingCompany(null);
+  const handleAddCompany = async (formData: CompanyFormData) => {
+    if (!user) return;
+    
+    try {
+      await companyService.createCompany(formData, user.id);
+      toast.success('Société ajoutée avec succès');
+      setIsAddDialogOpen(false);
+      fetchCompanies(); // Refresh the list
+    } catch (error) {
+      console.error('Error adding company:', error);
+      toast.error('Une erreur est survenue lors de l\'ajout de la société');
+    }
+  };
+
+  const handleEditCompany = async (company: Company | Omit<Company, 'id'>) => {
+    if (!user) return;
+    
+    // Make sure we have an ID (should always be the case for editing, but TypeScript needs this check)
+    const companyId = 'id' in company ? company.id : '';
+    
+    if (!companyId) {
+      throw new Error('Cannot update company without ID');
+    }
+    
+    try {
+      const formData: Partial<CompanyFormData> = {
+        name: company.name,
+        street: company.street,
+        postalCode: company.postalCode,
+        city: company.city,
+        country: company.country,
+        phone: company.phone,
+        email: company.email,
+        type: company.type
+      };
+      
+      await companyService.updateCompany(companyId, formData);
+      toast.success('Société mise à jour avec succès');
+      setEditingCompany(null);
+      fetchCompanies(); // Refresh the list
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast.error('Une erreur est survenue lors de la mise à jour de la société');
+    }
   };
 
   const handleEditClick = (company: Company) => {
     setEditingCompany(company);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -86,15 +114,23 @@ export default function CompaniesPage() {
       </div>
       
       {/* Company Cards */}
-      <div className="space-y-4">
-        {companies.map(company => (
-          <CompanyCard 
-            key={company.id} 
-            company={company} 
-            onEditClick={() => handleEditClick(company)} 
-          />
-        ))}
-      </div>
+      {companies.length === 0 ? (
+        <div className="text-center py-12 border rounded-lg bg-card">
+          <p className="text-muted-foreground">
+            Aucune société trouvée. Commencez par en ajouter une.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {companies.map(company => (
+            <CompanyCard 
+              key={company.id} 
+              company={company} 
+              onEditClick={() => handleEditClick(company)} 
+            />
+          ))}
+        </div>
+      )}
       
       {/* Add Company Dialog */}
       <CompanyDialog 
