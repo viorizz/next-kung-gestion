@@ -1,5 +1,6 @@
 // lib/services/companyService.ts
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/lib/supabase';
 import { 
   Database, 
   DbCompany, 
@@ -46,19 +47,21 @@ export const companyService = {
 
   // In your companyService object, update the createCompany method to:
   async createCompany(companyData: CompanyFormData, userId: string): Promise<Company> {
-    const dbCompanyData = mapCompanyToDbCompany(companyData);
+    const response = await fetch('/api/companies', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mapCompanyToDbCompany(companyData)),
+    });
     
-    // Ensure the userId is passed as a string
-    const { data, error } = await supabase
-      .from('companies')
-      .insert([{ ...dbCompanyData, user_id: userId.toString() }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error:', errorText);
+      throw new Error(`Failed to create company: ${errorText}`);
     }
+    
+    const data = await response.json();
     return mapDbCompanyToCompany(data);
   },
 
