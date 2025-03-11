@@ -39,7 +39,7 @@ const Sidebar = ({ className }: SidebarProps) => {
     },
     {
       name: 'Companies',
-      href: '/company',
+      href: '/companies',
       icon: <Building2 className="w-5 h-5" />,
     },
     {
