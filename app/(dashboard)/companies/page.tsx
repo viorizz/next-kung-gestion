@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CompanyCard } from '@/components/companies/companycard';
-import { CompanyDialog } from '@/components/companies/companydialog';
+import { CompanyCard } from '@/components/ui/companycard';
+import { CompanyDialog } from '@/components/ui/companydialog';
 import { PlusIcon } from 'lucide-react';
 
 // Temporary type definition for Company
