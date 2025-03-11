@@ -1,6 +1,7 @@
 // app/page.tsx
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Hero } from '@/components/ui/hero';
 
 export default function HomePage() {
   return (
@@ -22,25 +23,7 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <div className="container flex flex-col items-center justify-center max-w-4xl py-16 mx-auto text-center">
-          <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-            Simplify Civil Engineering Orders
-          </h1>
-          <p className="mt-6 text-xl text-gray-600 max-w-2xl">
-            Kung Gestion brings together all the order sheets of Swiss manufacturers in one place, 
-            making it easier for engineers and designers to manage their project orders.
-          </p>
-          <div className="flex gap-4 mt-10">
-            <Link href="/sign-up">
-              <Button size="lg">Get Started</Button>
-            </Link>
-            <Link href="/sign-in">
-              <Button size="lg" variant="outline">
-                Sign In
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <Hero></Hero>
 
         {/* Features Section */}
         <div className="py-16 bg-gray-50">

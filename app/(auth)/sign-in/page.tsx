@@ -1,22 +1,38 @@
-// app/(auth)/sign-in/page.tsx
+'use client';
+
+import { useEffect } from 'react';
 import { SignIn } from '@clerk/nextjs';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
+import { Loader2 } from 'lucide-react';
 
 export default function SignInPage() {
-  return (
-    <div className="w-full max-w-md p-8 space-y-4">
-      <div className="text-center mb-6">
-        <Link href="/" className="text-2xl font-bold">
-          Kung Gestion
-        </Link>
-        <h1 className="text-xl font-semibold mt-2">Sign in to your account</h1>
+  const router = useRouter();
+  const { isSignedIn, isLoaded } = useUser();
+
+  useEffect(() => {
+    // If user is signed in, redirect to dashboard
+    if (isLoaded && isSignedIn) {
+      router.push('/dashboard');
+    }
+  }, [isSignedIn, isLoaded, router]);
+
+  // Show loading state while checking authentication
+  if (!isLoaded || isSignedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-      
-      <SignIn
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <SignIn 
         appearance={{
           elements: {
-            rootBox: "mx-auto w-full",
-            card: "shadow-none",
+            rootBox: "mx-auto",
+            card: "shadow-lg rounded-lg border",
           }
         }}
         redirectUrl="/dashboard"
