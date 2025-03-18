@@ -6,8 +6,9 @@ import { Database } from '@/types/supabase';
 
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  context: { params: { userId: string } }
 ) {
+  const { params } = context;
   try {
     // Verify authentication
     const { userId } = auth();
