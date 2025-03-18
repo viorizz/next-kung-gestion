@@ -1,26 +1,22 @@
 // app/api/companies/[userId]/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
-interface RouteParams {
-  userId: string;
-}
-
 export async function GET(
-  request: NextRequest,
-  { params }: { params: RouteParams }
+  request: Request,
+  { params }: { params: { userId: string } }
 ) {
   try {
     // Verify authentication
-    const { userId } = auth();
-    if (!userId) {
+    const { userId: authUserId } = auth();
+    if (!authUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if the requested userId matches the authenticated userId
-    if (params.userId !== userId) {
+    if (params.userId !== authUserId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -50,7 +46,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('companies')
       .select('*')
-      .eq('user_id', userId.toString())
+      .eq('user_id', authUserId)
       .order('name', { ascending: true });
       
     if (error) {

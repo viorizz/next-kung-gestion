@@ -1,10 +1,10 @@
 // app/api/debug/db-test/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     // Verify authentication
     const { userId } = auth();

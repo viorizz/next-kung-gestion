@@ -15,13 +15,13 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Helper function to convert database company to frontend company
-const mapDbCompanyToCompany = (dbCompany: DbCompany): Company => ({
+const mapDbCompanyToCompany = (dbCompany: DbCompany | any): Company => ({
   id: dbCompany.id,
   name: dbCompany.name,
   street: dbCompany.street,
   postalCode: dbCompany.postal_code,
   city: dbCompany.city,
-  country: dbCompany.country,
+  country: dbCompany.country || 'Suisse',
   phone: dbCompany.phone || '',
   email: dbCompany.email || '',
   type: dbCompany.type
@@ -41,13 +41,41 @@ const mapCompanyToDbCompany = (company: CompanyFormData): Omit<DbCompanyInsert, 
 
 // Company services
 export const companyService = {
-  // Create a new company
-  // lib/services/companyService.ts
-  // This update is focused only on the createCompany method to ensure it works with Clerk IDs
+  // Get all companies for a user
+  async getCompanies(userId: string): Promise<Company[]> {
+    try {
+      console.log('Fetching companies for userId:', userId);
+      const response = await fetch(`/api/companies/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      // More informative error handling
+      if (!response.ok) {
+        let errorMessage = `HTTP error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error('API error response:', errorData);
+        } catch (e) {
+          const textError = await response.text().catch(() => '');
+          console.error('API text error response:', textError);
+        }
+        throw new Error(`Failed to fetch companies: ${errorMessage}`);
+      }
+      
+      const data = await response.json();
+      console.log('Companies data received:', data);
+      return data.map(mapDbCompanyToCompany);
+    } catch (error) {
+      console.error('Error in getCompanies:', error);
+      throw error;
+    }
+  },
 
-  // In your companyService object, update the createCompany method to:
-  // lib/services/companyService.ts
-  // lib/services/companyService.ts
+  // Create a new company
   async createCompany(companyData: CompanyFormData, userId: string): Promise<Company> {
     try {
       // Convert frontend model to database model format expected by the API
@@ -62,6 +90,8 @@ export const companyService = {
         type: companyData.type
       };
       
+      console.log('Creating company for userId:', userId, 'with data:', apiData);
+      
       const response = await fetch('/api/companies', {
         method: 'POST',
         headers: {
@@ -69,6 +99,20 @@ export const companyService = {
         },
         body: JSON.stringify(apiData),
       });
+      
+      // More robust error handling
+      if (!response.ok) {
+        let errorMessage = `HTTP error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error('API error response:', errorData);
+        } catch (e) {
+          const textError = await response.text().catch(() => '');
+          console.error('API text error response:', textError);
+        }
+        throw new Error(`Failed to create company: ${errorMessage}`);
+      }
       
       // Try to parse JSON response, but handle case where it might not be JSON
       let responseData;
@@ -81,13 +125,7 @@ export const companyService = {
         throw new Error(`Server returned non-JSON response: ${text}`);
       }
       
-      if (!response.ok) {
-        console.error('API error response:', responseData);
-        throw new Error(`Failed to create company: ${
-          responseData.error || responseData.message || response.statusText
-        }`);
-      }
-      
+      console.log('Company created successfully:', responseData);
       return mapDbCompanyToCompany(responseData);
     } catch (error) {
       console.error('Error in createCompany:', error);
@@ -95,35 +133,16 @@ export const companyService = {
     }
   },
 
-  // Similarly, update other methods that use userId:
-  async getCompanies(userId: string): Promise<Company[]> {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('user_id', userId.toString())
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
-    return data.map(mapDbCompanyToCompany);
-  },
-
-  // And the getCompaniesByType method:
+  // Get companies by type
   async getCompaniesByType(type: string, userId: string): Promise<Company[]> {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('type', type)
-      .eq('user_id', userId.toString())
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.error('Supabase error:', error);
+    try {
+      console.log(`Fetching companies of type '${type}' for userId:`, userId);
+      const allCompanies = await this.getCompanies(userId);
+      return allCompanies.filter(company => company.type === type);
+    } catch (error) {
+      console.error('Error in getCompaniesByType:', error);
       throw error;
     }
-    return data.map(mapDbCompanyToCompany);
   },
 
   // Update a company
