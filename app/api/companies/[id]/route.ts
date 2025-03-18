@@ -2,45 +2,36 @@
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
-import { Database } from '@/types/supabase';
+import type { Database } from '@/types/supabase';
 
-// PATCH handler for updating companies
 export async function PATCH(
-  request: Request,
+  req: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
+  const { userId } = auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   try {
-    const { id } = params;
+    const body = await req.json();
     
-    // Verify authentication
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing environment variables');
-      return NextResponse.json(
-        { error: 'Server configuration error' }, 
-        { status: 500 }
-      );
-    }
-
-    // Parse request body
-    const body = await request.json();
-
-    // Create Supabase client
     const supabase = createClient<Database>(
       supabaseUrl,
       supabaseServiceKey,
       { auth: { persistSession: false } }
     );
     
-    // First verify this company belongs to the user
+    // Check company ownership
     const { data: companyCheck, error: checkError } = await supabase
       .from('companies')
       .select('user_id')
@@ -48,11 +39,7 @@ export async function PATCH(
       .single();
       
     if (checkError) {
-      console.error('Error checking company ownership:', checkError);
-      return NextResponse.json(
-        { error: 'Company not found' }, 
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
     
     if (companyCheck.user_id !== userId) {
@@ -62,7 +49,7 @@ export async function PATCH(
       );
     }
     
-    // Prepare update data
+    // Update data
     const updateData = {
       name: body.name,
       street: body.street,
@@ -75,9 +62,6 @@ export async function PATCH(
       updated_at: new Date().toISOString()
     };
     
-    console.log('Updating company with data:', updateData);
-    
-    // Update the company
     const { data, error } = await supabase
       .from('companies')
       .update(updateData)
@@ -86,60 +70,45 @@ export async function PATCH(
       .single();
       
     if (error) {
-      console.error('Supabase error in API route:', error);
-      return NextResponse.json(
-        { error: error.message, details: error, code: error.code }, 
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Unhandled error in API route:', error);
+    console.error('Error:', error);
     return NextResponse.json(
-      { 
-        error: 'Internal Server Error', 
-        details: error instanceof Error ? error.message : String(error) 
-      }, 
+      { error: 'Internal Server Error' }, 
       { status: 500 }
     );
   }
 }
 
-// DELETE handler for deleting companies
 export async function DELETE(
-  request: Request,
+  req: Request,
   { params }: { params: { id: string } }
 ) {
+  const id = params.id;
+  const { userId } = auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   try {
-    const { id } = params;
-    
-    // Verify authentication
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing environment variables');
-      return NextResponse.json(
-        { error: 'Server configuration error' }, 
-        { status: 500 }
-      );
-    }
-
-    // Create Supabase client
     const supabase = createClient<Database>(
       supabaseUrl,
       supabaseServiceKey,
       { auth: { persistSession: false } }
     );
     
-    // First verify this company belongs to the user
+    // Check company ownership
     const { data: companyCheck, error: checkError } = await supabase
       .from('companies')
       .select('user_id')
@@ -147,11 +116,7 @@ export async function DELETE(
       .single();
       
     if (checkError) {
-      console.error('Error checking company ownership:', checkError);
-      return NextResponse.json(
-        { error: 'Company not found' }, 
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
     
     if (companyCheck.user_id !== userId) {
@@ -168,21 +133,14 @@ export async function DELETE(
       .eq('id', id);
       
     if (error) {
-      console.error('Supabase error in API route:', error);
-      return NextResponse.json(
-        { error: error.message, details: error, code: error.code }, 
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Unhandled error in API route:', error);
+    console.error('Error:', error);
     return NextResponse.json(
-      { 
-        error: 'Internal Server Error', 
-        details: error instanceof Error ? error.message : String(error) 
-      }, 
+      { error: 'Internal Server Error' }, 
       { status: 500 }
     );
   }
