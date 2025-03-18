@@ -20,7 +20,7 @@ export function DebugPanel() {
     try {
       // Test database connection directly
       addOutput('Testing direct database connection');
-      const dbTestResponse = await fetch('/api/debug/db-test', {
+      const dbTestResponse = await fetch('/api/debug', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -30,8 +30,8 @@ export function DebugPanel() {
       addOutput('DB test response data:', dbTestData);
 
       // Test direct API call
-      addOutput(`Making direct API request to /api/companies/${user.id}`);
-      const apiResponse = await fetch(`/api/companies/${user.id}`, {
+      addOutput('Making direct API request to /api/companies');
+      const apiResponse = await fetch('/api/companies', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });

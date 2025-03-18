@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
     // Verify authentication
     const { userId } = auth();
@@ -27,25 +27,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse request body
-    let body;
-    try {
-      body = await request.json();
-    } catch (e) {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    // Validate required fields
-    const requiredFields = ['name', 'street', 'postal_code', 'city', 'type'];
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { error: `Missing required field: ${field}` }, 
-          { status: 400 }
-        );
-      }
-    }
-
     // Create Supabase client
     const supabase = createClient<Database>(
       supabaseUrl,
@@ -53,29 +34,12 @@ export async function POST(request: Request) {
       { auth: { persistSession: false } }
     );
     
-    // Prepare data
-    const companyData = {
-      name: body.name,
-      street: body.street,
-      postal_code: body.postal_code,
-      city: body.city,
-      country: body.country || 'Suisse',
-      phone: body.phone || null,
-      email: body.email || null,
-      type: body.type,
-      user_id: userId.toString(), // Ensure it's a string
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    console.log('Inserting company with data:', companyData);
-    
-    // Insert the company
+    // Fetch companies for the authenticated user
     const { data, error } = await supabase
       .from('companies')
-      .insert([companyData])
-      .select()
-      .single();
+      .select('*')
+      .eq('user_id', userId)
+      .order('name', { ascending: true });
       
     if (error) {
       console.error('Supabase error in API route:', error);

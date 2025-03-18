@@ -45,7 +45,7 @@ export const companyService = {
   async getCompanies(userId: string): Promise<Company[]> {
     try {
       console.log('Fetching companies for userId:', userId);
-      const response = await fetch(`/api/companies/${userId}`, {
+      const response = await fetch('/api/companies', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

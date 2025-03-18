@@ -1,4 +1,4 @@
-// app/api/debug/db-test/route.ts
+// app/api/debug/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
