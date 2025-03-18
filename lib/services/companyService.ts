@@ -147,37 +147,81 @@ export const companyService = {
 
   // Update a company
   async updateCompany(companyId: string, companyData: Partial<CompanyFormData>): Promise<Company> {
-    // Convert frontend model to database model
-    const dbUpdateData: Partial<DbCompanyUpdate> = {};
-    
-    if (companyData.name !== undefined) dbUpdateData.name = companyData.name;
-    if (companyData.street !== undefined) dbUpdateData.street = companyData.street;
-    if (companyData.postalCode !== undefined) dbUpdateData.postal_code = companyData.postalCode;
-    if (companyData.city !== undefined) dbUpdateData.city = companyData.city;
-    if (companyData.country !== undefined) dbUpdateData.country = companyData.country;
-    if (companyData.phone !== undefined) dbUpdateData.phone = companyData.phone || null;
-    if (companyData.email !== undefined) dbUpdateData.email = companyData.email || null;
-    if (companyData.type !== undefined) dbUpdateData.type = companyData.type;
-    
-    const { data, error } = await supabase
-      .from('companies')
-      .update(dbUpdateData)
-      .eq('id', companyId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return mapDbCompanyToCompany(data);
+    try {
+      console.log('Updating company with ID:', companyId, 'with data:', companyData);
+      
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(companyData),
+      });
+      
+      // More informative error handling
+      if (!response.ok) {
+        let errorMessage = `HTTP error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error('API error response:', errorData);
+        } catch (e) {
+          const textError = await response.text().catch(() => '');
+          console.error('API text error response:', textError);
+        }
+        throw new Error(`Failed to update company: ${errorMessage}`);
+      }
+      
+      // Try to parse JSON response
+      let responseData;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error(`Server returned non-JSON response: ${text}`);
+      }
+      
+      console.log('Company updated successfully:', responseData);
+      return mapDbCompanyToCompany(responseData);
+    } catch (error) {
+      console.error('Error in updateCompany:', error);
+      throw error;
+    }
   },
 
   // Delete a company
   async deleteCompany(companyId: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('companies')
-      .delete()
-      .eq('id', companyId);
-
-    if (error) throw error;
-    return true;
+    try {
+      console.log('Deleting company with ID:', companyId);
+      
+      const response = await fetch(`/api/companies/${companyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      // More informative error handling
+      if (!response.ok) {
+        let errorMessage = `HTTP error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error('API error response:', errorData);
+        } catch (e) {
+          const textError = await response.text().catch(() => '');
+          console.error('API text error response:', textError);
+        }
+        throw new Error(`Failed to delete company: ${errorMessage}`);
+      }
+      
+      console.log('Company deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error in deleteCompany:', error);
+      throw error;
+    }
   }
 };

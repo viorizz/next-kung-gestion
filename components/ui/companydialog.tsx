@@ -44,7 +44,7 @@ const companyTypes = [
 interface CompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (company: Company | Omit<Company, 'id'>) => void;
+  onSave: (company: Company | Partial<Company>) => void;
   company?: Company;
 }
 
@@ -70,14 +70,15 @@ export function CompanyDialog({
   // Reset form when dialog opens/closes or company changes
   useEffect(() => {
     if (company) {
+      console.log('Setting form data from company:', company);
       setFormData({
         name: company.name,
         street: company.street,
         postalCode: company.postalCode,
         city: company.city,
-        country: company.country,
-        phone: company.phone,
-        email: company.email,
+        country: company.country || 'Suisse',
+        phone: company.phone || '',
+        email: company.email || '',
         type: company.type,
       });
     } else if (open) {
@@ -106,10 +107,13 @@ export function CompanyDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
     
     if (isEditing && company) {
+      console.log('Updating company with ID:', company.id);
       onSave({ ...formData, id: company.id });
     } else {
+      console.log('Creating new company');
       onSave(formData);
     }
   };
@@ -119,7 +123,7 @@ export function CompanyDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Modifier la société' : 'Ajouter une société'}
+            {isEditing ? `Modifier la société: ${company?.name}` : 'Ajouter une société'}
           </DialogTitle>
         </DialogHeader>
         

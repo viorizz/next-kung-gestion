@@ -39,11 +39,23 @@ export default function CompaniesPage() {
     }
   };
 
-  const handleAddCompany = async (formData: CompanyFormData) => {
+  const handleAddCompany = async (formData: CompanyFormData | Partial<Company>) => {
     if (!user) return;
     
     try {
-      await companyService.createCompany(formData, user.id);
+      // Convert to CompanyFormData if needed
+      const companyFormData: CompanyFormData = {
+        name: formData.name || '',
+        street: formData.street || '',
+        postalCode: formData.postalCode || '',
+        city: formData.city || '',
+        country: formData.country || 'Suisse',
+        phone: formData.phone || '',
+        email: formData.email || '',
+        type: formData.type || ''
+      };
+      
+      await companyService.createCompany(companyFormData, user.id);
       toast.success('Société ajoutée avec succès');
       setIsAddDialogOpen(false);
       fetchCompanies(); // Refresh the list
@@ -53,18 +65,23 @@ export default function CompaniesPage() {
     }
   };
 
-  const handleEditCompany = async (company: Company | Omit<Company, 'id'>) => {
+  const handleEditCompany = async (company: Company | Partial<Company>) => {
     if (!user) return;
     
-    // Make sure we have an ID (should always be the case for editing, but TypeScript needs this check)
-    const companyId = 'id' in company ? company.id : '';
-    
-    if (!companyId) {
-      throw new Error('Cannot update company without ID');
+    // Make sure we have an ID (should always be the case for editing)
+    if (!('id' in company) || !company.id) {
+      console.error('Cannot update company without ID');
+      toast.error('Une erreur est survenue: ID de société manquant');
+      return;
     }
     
+    console.log('Editing company:', company);
+    
     try {
-      const formData: Partial<CompanyFormData> = {
+      // Use a non-null assertion since we've checked above
+      const companyId: string = company.id;
+      
+      const updateData: Partial<CompanyFormData> = {
         name: company.name,
         street: company.street,
         postalCode: company.postalCode,
@@ -75,7 +92,8 @@ export default function CompaniesPage() {
         type: company.type
       };
       
-      await companyService.updateCompany(companyId, formData);
+      await companyService.updateCompany(companyId, updateData);
+      
       toast.success('Société mise à jour avec succès');
       setEditingCompany(null);
       fetchCompanies(); // Refresh the list
