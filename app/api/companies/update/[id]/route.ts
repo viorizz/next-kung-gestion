@@ -1,15 +1,15 @@
 // app/api/companies/update/[id]/route.ts
-// This replaces the PATCH functionality
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import type { Database } from '@/types/supabase';
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const id = params.id;
+// Using the simpler next/server types without explicit param typing
+export async function POST(request: NextRequest) {
+    // Extract the ID from the URL
+    const urlParts = request.url.split('/');
+    const id = urlParts[urlParts.length - 1];
+  
   const { userId } = auth();
   
   if (!userId) {
@@ -24,9 +24,9 @@ export async function POST(
   }
 
   try {
-    const body = await req.json();
+    const body = await request.json();
     
-    const supabase = createClient<Database>(
+    const supabase = createClient(
       supabaseUrl,
       supabaseServiceKey,
       { auth: { persistSession: false } }
