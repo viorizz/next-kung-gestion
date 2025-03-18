@@ -150,8 +150,9 @@ export const companyService = {
     try {
       console.log('Updating company with ID:', companyId, 'with data:', companyData);
       
-      const response = await fetch(`/api/companies/${companyId}`, {
-        method: 'PATCH',
+      // Updated to use the new endpoint
+      const response = await fetch(`/api/companies/update/${companyId}`, {
+        method: 'POST', // Changed from PATCH to POST
         headers: {
           'Content-Type': 'application/json',
         },
@@ -196,8 +197,9 @@ export const companyService = {
     try {
       console.log('Deleting company with ID:', companyId);
       
-      const response = await fetch(`/api/companies/${companyId}`, {
-        method: 'DELETE',
+      // Updated to use the new endpoint
+      const response = await fetch(`/api/companies/remove/${companyId}`, {
+        method: 'POST', // Changed from DELETE to POST
         headers: {
           'Content-Type': 'application/json',
         },
