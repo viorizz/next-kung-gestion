@@ -7,10 +7,10 @@ import { Database } from '@/types/supabase';
 // PATCH handler for updating companies
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     
     // Verify authentication
     const { userId } = auth();
@@ -109,10 +109,10 @@ export async function PATCH(
 // DELETE handler for deleting companies
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     
     // Verify authentication
     const { userId } = auth();
