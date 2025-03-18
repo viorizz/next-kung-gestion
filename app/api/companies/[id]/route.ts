@@ -4,19 +4,18 @@ import { auth } from '@clerk/nextjs';
 import { NextResponse, NextRequest } from 'next/server';
 import { Database } from '@/types/supabase';
 
-type RouteContext = {
-  params: {
-    id: string;
-  }
+// Updated type definition to match Next.js 15 expectations
+type Params = {
+  id: string;
 };
 
 // PATCH handler for updating companies
 export async function PATCH(
   request: NextRequest, 
-  context: RouteContext
+  { params }: { params: Params }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = params;
     
     // Verify authentication
     const { userId } = auth();
@@ -115,10 +114,10 @@ export async function PATCH(
 // DELETE handler for deleting companies
 export async function DELETE(
   request: NextRequest, 
-  context: RouteContext
+  { params }: { params: Params }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = params;
     
     // Verify authentication
     const { userId } = auth();
