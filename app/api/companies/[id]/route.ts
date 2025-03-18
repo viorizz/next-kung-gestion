@@ -4,15 +4,10 @@ import { auth } from '@clerk/nextjs';
 import { NextResponse, NextRequest } from 'next/server';
 import { Database } from '@/types/supabase';
 
-// Updated type definition to match Next.js 15 expectations
-type Params = {
-  id: string;
-};
-
 // PATCH handler for updating companies
 export async function PATCH(
-  request: NextRequest, 
-  { params }: { params: Params }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
@@ -113,8 +108,8 @@ export async function PATCH(
 
 // DELETE handler for deleting companies
 export async function DELETE(
-  request: NextRequest, 
-  { params }: { params: Params }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
