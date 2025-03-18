@@ -1,16 +1,16 @@
 // app/api/companies/[id]/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
 // PATCH handler for updating companies
 export async function PATCH(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = params;
     
     // Verify authentication
     const { userId } = auth();
@@ -108,11 +108,11 @@ export async function PATCH(
 
 // DELETE handler for deleting companies
 export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = params;
     
     // Verify authentication
     const { userId } = auth();
