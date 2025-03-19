@@ -123,7 +123,7 @@ export function CompanyDialog({
       open={open} 
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" tabIndex={9}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? `Modifier la société: ${company?.name}` : 'Ajouter une société'}
