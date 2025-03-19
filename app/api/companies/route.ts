@@ -61,3 +61,69 @@ export async function GET(request: Request) {
     );
   }
 }
+
+// Add this POST handler to app/api/companies/route.ts
+export async function POST(request: Request) {
+  try {
+    // Verify authentication
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Parse the request body
+    const body = await request.json();
+
+    // Check environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error' }, 
+        { status: 500 }
+      );
+    }
+
+    // Create Supabase client
+    const supabase = createClient<Database>(
+      supabaseUrl,
+      supabaseServiceKey,
+      { auth: { persistSession: false } }
+    );
+    
+    // Add creation timestamp and user_id
+    const companyData = {
+      ...body,
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Insert the new company
+    const { data, error } = await supabase
+      .from('companies')
+      .insert(companyData)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Supabase error in API route:', error);
+      return NextResponse.json(
+        { error: error.message, details: error, code: error.code }, 
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Unhandled error in API route:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal Server Error', 
+        details: error instanceof Error ? error.message : String(error) 
+      }, 
+      { status: 500 }
+    );
+  }
+}
