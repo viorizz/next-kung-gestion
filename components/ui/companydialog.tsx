@@ -123,7 +123,7 @@ export function CompanyDialog({
       open={open} 
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="sm:max-w-[500px]" tabIndex={9}>
+      <DialogContent className="sm:max-w-[500px]" tabIndex={0}>
         <DialogHeader>
           <DialogTitle>
             {isEditing ? `Modifier la société: ${company?.name}` : 'Ajouter une société'}
@@ -139,7 +139,7 @@ export function CompanyDialog({
               value={formData.name}
               onChange={handleChange}
               required
-              tabIndex={0}
+              tabIndex={-1}
             />
           </div>
           
@@ -151,7 +151,7 @@ export function CompanyDialog({
               value={formData.street}
               onChange={handleChange}
               required
-              tabIndex={1}
+              tabIndex={-1}
             />
           </div>
           
@@ -164,7 +164,7 @@ export function CompanyDialog({
                 value={formData.postalCode}
                 onChange={handleChange}
                 required
-                tabIndex={2}
+                tabIndex={-1}
               />
             </div>
             
@@ -176,7 +176,7 @@ export function CompanyDialog({
                 value={formData.city}
                 onChange={handleChange}
                 required
-                tabIndex={3}
+                tabIndex={-1}
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export function CompanyDialog({
               value={formData.country}
               onChange={handleChange}
               required
-              tabIndex={4}
+              tabIndex={-1}
             />
           </div>
           
@@ -200,7 +200,7 @@ export function CompanyDialog({
               onValueChange={handleSelectChange}
               required
             >
-              <SelectTrigger id="type" tabIndex={0}>
+              <SelectTrigger id="type" tabIndex={-1}>
                 <SelectValue placeholder="Sélectionner un type" />
               </SelectTrigger>
               <SelectContent>
@@ -222,7 +222,7 @@ export function CompanyDialog({
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                tabIndex={5}
+                tabIndex={-1}
               />
             </div>
             
@@ -234,7 +234,7 @@ export function CompanyDialog({
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="+41 XX XXX XX XX"
-                tabIndex={6}
+                tabIndex={-1}
               />
             </div>
           </div>
@@ -244,11 +244,11 @@ export function CompanyDialog({
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              tabIndex={7}
+              tabIndex={-1}
             >
               Annuler
             </Button>
-            <Button type="submit" tabIndex={8}>
+            <Button type="submit" tabIndex={-1}>
               {isEditing ? 'Enregistrer' : 'Créer la société'}
             </Button>
           </DialogFooter>
