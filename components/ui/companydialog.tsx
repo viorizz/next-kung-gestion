@@ -130,7 +130,7 @@ export function CompanyDialog({
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4" tabIndex={1}>
           <div className="space-y-2">
             <Label htmlFor="name">Nom de la société*</Label>
             <Input
