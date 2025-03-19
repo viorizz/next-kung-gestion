@@ -1,0 +1,80 @@
+// app/api/project-parts/remove/[id]/route.ts
+import { createClient } from '@supabase/supabase-js';
+import { auth } from '@clerk/nextjs';
+import { NextResponse, NextRequest } from 'next/server';
+import type { Database } from '@/types/supabase';
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = params.id;
+  
+  const { userId } = auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  try {
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      { auth: { persistSession: false } }
+    );
+    
+    // Check that the part belongs to a project owned by this user
+    const { data: partCheck, error: checkError } = await supabase
+      .from('project_parts')
+      .select('project_id')
+      .eq('id', id)
+      .single();
+      
+    if (checkError) {
+      return NextResponse.json({ error: 'Project part not found' }, { status: 404 });
+    }
+    
+    // Verify project ownership
+    const { data: projectCheck, error: projectError } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', partCheck.project_id)
+      .single();
+      
+    if (projectError) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+    
+    if (projectCheck.user_id !== userId) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this project part' }, 
+        { status: 403 }
+      );
+    }
+    
+    // Delete the project part
+    const { error } = await supabase
+      .from('project_parts')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' }, 
+      { status: 500 }
+    );
+  }
+}

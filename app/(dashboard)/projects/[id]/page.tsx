@@ -26,13 +26,11 @@ import { ProjectPart } from '@/types/projectPart';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
-interface ProjectDetailPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
+export default function ProjectDetailPage({ 
+  params 
+}: { 
+  params: { id: string } 
+}) {
   const { id } = params;
   const { user, isLoaded } = useUser();
   const [project, setProject] = useState<Project | null>(null);
