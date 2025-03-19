@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,18 @@ const companyTypes = [
   { id: 'supplier', name: 'Supplier' },
 ];
 
+// Field configuration for focusing
+const fieldOrder = [
+  'name',
+  'street',
+  'postalCode',
+  'city',
+  'country',
+  'type',
+  'email',
+  'phone',
+];
+
 interface CompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -55,6 +67,18 @@ export function CompanyDialog({
   company 
 }: CompanyDialogProps) {
   const isEditing = !!company;
+  
+  // Create refs for each input field
+  const inputRefs = {
+    name: useRef<HTMLInputElement>(null),
+    street: useRef<HTMLInputElement>(null),
+    postalCode: useRef<HTMLInputElement>(null),
+    city: useRef<HTMLInputElement>(null),
+    country: useRef<HTMLInputElement>(null),
+    type: useRef<HTMLButtonElement>(null), // For SelectTrigger
+    email: useRef<HTMLInputElement>(null),
+    phone: useRef<HTMLInputElement>(null),
+  };
   
   const [formData, setFormData] = useState<Omit<Company, 'id'>>({
     name: '',
@@ -96,6 +120,16 @@ export function CompanyDialog({
     }
   }, [company, open]);
 
+  // Focus the first field when the dialog opens
+  useEffect(() => {
+    if (open) {
+      // Small delay to ensure the dialog is fully rendered
+      setTimeout(() => {
+        inputRefs.name.current?.focus();
+      }, 100);
+    }
+  }, [open]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -103,6 +137,26 @@ export function CompanyDialog({
 
   const handleSelectChange = (value: string) => {
     setFormData(prev => ({ ...prev, type: value }));
+  };
+  
+  // Handle tab and enter key to move between fields
+  const handleKeyDown = (e: React.KeyboardEvent, fieldName: string) => {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault(); // Prevent default tab behavior
+      
+      // Find the current field index
+      const currentIndex = fieldOrder.indexOf(fieldName);
+      
+      // Determine the next field index
+      const nextIndex = e.shiftKey 
+        ? (currentIndex - 1 + fieldOrder.length) % fieldOrder.length // Go backwards with Shift+Tab
+        : (currentIndex + 1) % fieldOrder.length; // Go forwards with Tab
+      
+      const nextField = fieldOrder[nextIndex];
+      
+      // Focus the next field
+      inputRefs[nextField as keyof typeof inputRefs].current?.focus();
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -138,6 +192,8 @@ export function CompanyDialog({
               name="name"
               value={formData.name}
               onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, 'name')}
+              ref={inputRefs.name}
               required
             />
           </div>
@@ -149,6 +205,8 @@ export function CompanyDialog({
               name="street"
               value={formData.street}
               onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, 'street')}
+              ref={inputRefs.street}
               required
             />
           </div>
@@ -161,6 +219,8 @@ export function CompanyDialog({
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'postalCode')}
+                ref={inputRefs.postalCode}
                 required
               />
             </div>
@@ -172,6 +232,8 @@ export function CompanyDialog({
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'city')}
+                ref={inputRefs.city}
                 required
               />
             </div>
@@ -184,6 +246,8 @@ export function CompanyDialog({
               name="country"
               value={formData.country}
               onChange={handleChange}
+              onKeyDown={(e) => handleKeyDown(e, 'country')}
+              ref={inputRefs.country}
               required
             />
           </div>
@@ -195,7 +259,11 @@ export function CompanyDialog({
               onValueChange={handleSelectChange}
               required
             >
-              <SelectTrigger id="type" >
+              <SelectTrigger 
+                id="type" 
+                ref={inputRefs.type}
+                onKeyDown={(e) => handleKeyDown(e, 'type')}
+              >
                 <SelectValue placeholder="Sélectionner un type" />
               </SelectTrigger>
               <SelectContent>
@@ -217,6 +285,8 @@ export function CompanyDialog({
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'email')}
+                ref={inputRefs.email}
               />
             </div>
             
@@ -227,6 +297,8 @@ export function CompanyDialog({
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                onKeyDown={(e) => handleKeyDown(e, 'phone')}
+                ref={inputRefs.phone}
                 placeholder="+41 XX XXX XX XX"
               />
             </div>
