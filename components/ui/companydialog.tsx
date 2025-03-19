@@ -130,7 +130,7 @@ export function CompanyDialog({
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 py-4" tabIndex={1}>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nom de la société*</Label>
             <Input
@@ -151,7 +151,7 @@ export function CompanyDialog({
               value={formData.street}
               onChange={handleChange}
               required
-              tabIndex={0}
+              tabIndex={1}
             />
           </div>
           
@@ -164,7 +164,7 @@ export function CompanyDialog({
                 value={formData.postalCode}
                 onChange={handleChange}
                 required
-                tabIndex={0}
+                tabIndex={2}
               />
             </div>
             
@@ -176,7 +176,7 @@ export function CompanyDialog({
                 value={formData.city}
                 onChange={handleChange}
                 required
-                tabIndex={0}
+                tabIndex={3}
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export function CompanyDialog({
               value={formData.country}
               onChange={handleChange}
               required
-              tabIndex={0}
+              tabIndex={4}
             />
           </div>
           
@@ -222,7 +222,7 @@ export function CompanyDialog({
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                tabIndex={0}
+                tabIndex={5}
               />
             </div>
             
@@ -234,7 +234,7 @@ export function CompanyDialog({
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="+41 XX XXX XX XX"
-                tabIndex={0}
+                tabIndex={6}
               />
             </div>
           </div>
@@ -244,11 +244,11 @@ export function CompanyDialog({
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              tabIndex={0}
+              tabIndex={7}
             >
               Annuler
             </Button>
-            <Button type="submit" tabIndex={0}>
+            <Button type="submit" tabIndex={8}>
               {isEditing ? 'Enregistrer' : 'Créer la société'}
             </Button>
           </DialogFooter>
