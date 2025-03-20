@@ -1,13 +1,14 @@
 // app/api/projects/remove/[id]/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import type { Database } from '@/types/supabase';
 
-export async function POST(request: NextRequest) {
-  // Extract the ID from the URL
-  const urlParts = request.url.split('/');
-  const id = urlParts[urlParts.length - 1];
+export async function POST(
+  request: NextRequest,
+  context: { params: any }
+) {
+  const id = context.params.id;
   
   const { userId } = auth();
   

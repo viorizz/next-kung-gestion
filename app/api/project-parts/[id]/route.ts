@@ -1,14 +1,15 @@
 // app/api/project-parts/[id]/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
+// Let Next.js manage the types
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: any }
 ) {
-  const partId = params.id;
+  const partId = context.params.id;
   
   try {
     // Verify authentication

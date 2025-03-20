@@ -1,14 +1,14 @@
 // app/api/projects/[id]/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: any }
 ) {
-  const projectId = params.id;
+  const projectId = context.params.id;
   
   try {
     // Verify authentication

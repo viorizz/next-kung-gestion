@@ -1,11 +1,10 @@
-// Remove all type annotations for the page component
-export default function ProjectDetailPage({ params }) {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Project Details</h1>
-      <p>Project ID: {params.id}</p>
-      
-      {/* We'll add a client component later after this builds */}
-    </div>
-  );
+import { ProjectDetailClient } from './client';
+
+// Add proper typing that's compatible with Next.js 15.2.0
+export default function ProjectDetailPage({ 
+  params 
+}: { 
+  params: { id: string } 
+}) {
+  return <ProjectDetailClient id={params.id} />;
 }

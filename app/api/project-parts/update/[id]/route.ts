@@ -1,14 +1,14 @@
 // app/api/project-parts/update/[id]/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import type { Database } from '@/types/supabase';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: any }
 ) {
-  const id = params.id;
+  const id = context.params.id;
   
   const { userId } = auth();
   
