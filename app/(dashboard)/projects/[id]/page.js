@@ -1,5 +1,5 @@
 // Using .js file to avoid TypeScript type issues
-import { ProjectDetailClient } from './client-component';
+import { ProjectDetailClient } from './client.tsx';
 
 export default function ProjectDetailPage(props) {
   // Access the ID directly without typing constraints
