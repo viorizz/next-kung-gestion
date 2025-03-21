@@ -43,6 +43,9 @@ export function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
+  // Find the selected item by value
+  const selectedItem = items.find(item => item.value === value)
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -53,9 +56,7 @@ export function Combobox({
           disabled={disabled}
           className={cn("w-full justify-between", className)}
         >
-          {value
-            ? items.find((item) => item.value === value)?.label || value
-            : placeholder}
+          {selectedItem ? selectedItem.label : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -68,8 +69,9 @@ export function Combobox({
               <CommandItem
                 key={item.value}
                 value={item.value}
-                onSelect={() => {
-                  onChange(item.value === value ? "" : item.value)
+                onSelect={(currentValue) => {
+                  // Always set the selected value (don't toggle)
+                  onChange(item.value)
                   setOpen(false)
                 }}
               >
