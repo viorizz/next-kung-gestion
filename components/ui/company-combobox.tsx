@@ -63,7 +63,7 @@ export function CompanyCombobox({
       onChange={onChange}
       placeholder={loading ? 'Loading...' : placeholder}
       emptyMessage={loading ? 'Loading companies...' : 'No companies found.'}
-      disabled={disabled || loading}
+      disabled={false}
       className={className}
     />
   );
