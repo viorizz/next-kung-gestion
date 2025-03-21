@@ -1,22 +1,7 @@
 'use client';
 
-import * as React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { useState, useEffect } from 'react';
+import { Combobox, ComboboxItem } from '@/components/ui/combobox';
 import { companyService } from '@/lib/services/companyService';
 import { Company } from '@/types/company';
 
@@ -26,6 +11,7 @@ interface CompanyComboboxProps {
   placeholder: string;
   companyType?: string;
   disabled?: boolean;
+  className?: string;
 }
 
 export function CompanyCombobox({ 
@@ -33,10 +19,10 @@ export function CompanyCombobox({
   onChange, 
   placeholder,
   companyType,
-  disabled = false
+  disabled = false,
+  className
 }: CompanyComboboxProps) {
-  const [open, setOpen] = useState(false);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<ComboboxItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,9 +36,18 @@ export function CompanyCombobox({
         } else {
           data = await companyService.getCompanies('current');
         }
-        setCompanies(data);
+        
+        // Convert to ComboboxItem format
+        const items: ComboboxItem[] = data.map(company => ({
+          value: company.name,
+          label: company.name
+        }));
+        
+        setCompanies(items);
       } catch (error) {
         console.error('Failed to load companies:', error);
+        // Set empty array on error
+        setCompanies([]);
       } finally {
         setLoading(false);
       }
@@ -61,53 +56,15 @@ export function CompanyCombobox({
     fetchCompanies();
   }, [companyType]);
 
-  // Find the selected company
-  const selectedCompany = value 
-    ? companies.find(company => company.name === value) 
-    : null;
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className="w-full justify-between"
-        >
-          {value || placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
-        <Command>
-          <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
-          <CommandEmpty>
-            {loading ? 'Loading...' : 'No company found.'}
-          </CommandEmpty>
-          <CommandGroup className="max-h-60 overflow-auto">
-            {companies.map((company) => (
-              <CommandItem
-                key={company.id}
-                value={company.name}
-                onSelect={() => {
-                  onChange(company.name);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === company.name ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {company.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Combobox
+      items={companies}
+      value={value}
+      onChange={onChange}
+      placeholder={loading ? 'Loading...' : placeholder}
+      emptyMessage={loading ? 'Loading companies...' : 'No companies found.'}
+      disabled={disabled || loading}
+      className={className}
+    />
   );
 }

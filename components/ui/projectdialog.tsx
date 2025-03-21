@@ -110,7 +110,7 @@ export function ProjectDialog({
   };
   
   const handleCompanyChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: value || null }));
   };
   
   // Handle tab and enter key to move between fields (only for text inputs)
