@@ -46,6 +46,13 @@ export function Combobox({
   // Find the selected item by value
   const selectedItem = items.find(item => item.value === value)
 
+  // Direct click handler to ensure selection works
+  const handleSelect = (itemValue: string) => {
+    console.log("Selecting item:", itemValue)
+    onChange(itemValue)
+    setOpen(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -69,11 +76,8 @@ export function Combobox({
               <CommandItem
                 key={item.value}
                 value={item.value}
-                onSelect={(currentValue) => {
-                  // Always set the selected value (don't toggle)
-                  onChange(item.value)
-                  setOpen(false)
-                }}
+                onSelect={() => handleSelect(item.value)}
+                className="text-foreground hover:bg-accent cursor-pointer"
               >
                 <Check
                   className={cn(

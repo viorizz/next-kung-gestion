@@ -56,17 +56,11 @@ export function CompanyCombobox({
     fetchCompanies();
   }, [companyType]);
 
-  // Add debugging
-  const handleChange = (newValue: string) => {
-    console.log('CompanyCombobox selected:', newValue);
-    onChange(newValue);
-  };
-
   return (
     <Combobox
       items={companies}
       value={value}
-      onChange={handleChange}
+      onChange={onChange}
       placeholder={loading ? 'Loading...' : placeholder}
       emptyMessage={loading ? 'Loading companies...' : 'No companies found.'}
       disabled={disabled || loading}
