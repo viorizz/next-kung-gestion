@@ -33,64 +33,69 @@ interface ComboboxProps {
 }
 
 export function Combobox({
-  items,
-  value,
-  onChange,
-  placeholder = "Select an option",
-  emptyMessage = "No results found.",
-  disabled = false,
-  className,
-}: ComboboxProps) {
-  const [open, setOpen] = React.useState(false)
-
-  // Find the selected item by value
-  const selectedItem = items.find(item => item.value === value)
-
-  // Direct click handler to ensure selection works
-  const handleSelect = (itemValue: string) => {
-    console.log("Selecting item:", itemValue)
-    onChange(itemValue)
-    setOpen(false)
+    items,
+    value,
+    onChange,
+    placeholder = "Select an option",
+    emptyMessage = "No results found.",
+    disabled = false,
+    className,
+  }: ComboboxProps) {
+    const [open, setOpen] = React.useState(false)
+  
+    // Improved value comparison
+    const selectedItem = items.find(item => 
+      String(item.value) === String(value)
+    )
+  
+    const handleSelect = (itemValue: string) => {
+      if (itemValue === value) {
+        onChange('') // Allow deselection
+      } else {
+        onChange(itemValue)
+      }
+      setOpen(false)
+    }
+  
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn("w-full justify-between", className)}
+            onClick={() => !disabled && setOpen(true)}
+          >
+            {selectedItem ? selectedItem.label : placeholder}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0" forceMount>
+          <Command value={value || ""}>
+            <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandGroup className="max-h-60 overflow-y-auto">
+              {items.map((item) => (
+                <CommandItem
+                  key={item.value}
+                  value={item.value}
+                  onSelect={() => handleSelect(item.value)}
+                  className="cursor-pointer"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === item.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {item.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    )
   }
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className={cn("w-full justify-between", className)}
-        >
-          {selectedItem ? selectedItem.label : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0">
-        <Command>
-          <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
-          <CommandEmpty>{emptyMessage}</CommandEmpty>
-          <CommandGroup className="max-h-60 overflow-y-auto">
-            {items.map((item) => (
-              <CommandItem
-                key={item.value}
-                value={item.value}
-                onSelect={() => handleSelect(item.value)}
-                className="text-foreground hover:bg-accent cursor-pointer"
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === item.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {item.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  )
-}
