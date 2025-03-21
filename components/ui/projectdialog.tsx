@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Project, ProjectFormData } from '@/types/project';
+import { CompanyCombobox } from '@/components/ui/company-combobox';
 
 // Field configuration for focusing
 const fieldOrder = [
@@ -41,17 +42,13 @@ export function ProjectDialog({
 }: ProjectDialogProps) {
   const isEditing = !!project;
   
-  // Create refs for each input field
+  // Create refs for each input field (only for text inputs)
   const inputRefs = {
     projectNumber: useRef<HTMLInputElement>(null),
     name: useRef<HTMLInputElement>(null),
     address: useRef<HTMLInputElement>(null),
     designer: useRef<HTMLInputElement>(null),
     projectManager: useRef<HTMLInputElement>(null),
-    masonryCompany: useRef<HTMLInputElement>(null),
-    architect: useRef<HTMLInputElement>(null),
-    engineer: useRef<HTMLInputElement>(null),
-    owner: useRef<HTMLInputElement>(null),
   };
   
   const [formData, setFormData] = useState<Omit<ProjectFormData, 'userId'>>({
@@ -112,7 +109,11 @@ export function ProjectDialog({
     setFormData(prev => ({ ...prev, [name]: value || null }));
   };
   
-  // Handle tab and enter key to move between fields
+  const handleCompanyChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // Handle tab and enter key to move between fields (only for text inputs)
   const handleKeyDown = (e: React.KeyboardEvent, fieldName: string) => {
     if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault(); // Prevent default tab behavior
@@ -127,8 +128,10 @@ export function ProjectDialog({
       
       const nextField = fieldOrder[nextIndex];
       
-      // Focus the next field
-      inputRefs[nextField as keyof typeof inputRefs].current?.focus();
+      // Focus the next field if it has a ref (text inputs)
+      if (inputRefs[nextField as keyof typeof inputRefs]?.current) {
+        inputRefs[nextField as keyof typeof inputRefs].current?.focus();
+      }
     }
   };
 
@@ -227,52 +230,47 @@ export function ProjectDialog({
             </div>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="masonryCompany">Masonry Company</Label>
-            <Input
-              id="masonryCompany"
-              name="masonryCompany"
-              value={formData.masonryCompany || ''}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, 'masonryCompany')}
-              ref={inputRefs.masonryCompany}
-            />
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
+          {/* 2x2 grid for company fields with comboboxes */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="architect">Architect</Label>
-              <Input
-                id="architect"
-                name="architect"
-                value={formData.architect || ''}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, 'architect')}
-                ref={inputRefs.architect}
+              <Label htmlFor="masonryCompany">Masonry Company</Label>
+              <CompanyCombobox
+                value={formData.masonryCompany}
+                onChange={(value) => handleCompanyChange('masonryCompany', value)}
+                placeholder="Select company"
+                companyType="Masonry"
               />
             </div>
             
             <div className="space-y-2">
+              <Label htmlFor="architect">Architect</Label>
+              <CompanyCombobox
+                value={formData.architect}
+                onChange={(value) => handleCompanyChange('architect', value)}
+                placeholder="Select architect"
+                companyType="Architect"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="engineer">Engineer</Label>
-              <Input
-                id="engineer"
-                name="engineer"
-                value={formData.engineer || ''}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, 'engineer')}
-                ref={inputRefs.engineer}
+              <CompanyCombobox
+                value={formData.engineer}
+                onChange={(value) => handleCompanyChange('engineer', value)}
+                placeholder="Select engineer"
+                companyType="Engineer"
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="owner">Owner</Label>
-              <Input
-                id="owner"
-                name="owner"
-                value={formData.owner || ''}
-                onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, 'owner')}
-                ref={inputRefs.owner}
+              <CompanyCombobox
+                value={formData.owner}
+                onChange={(value) => handleCompanyChange('owner', value)}
+                placeholder="Select owner"
+                companyType="Contractor"
               />
             </div>
           </div>

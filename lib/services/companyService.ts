@@ -133,12 +133,48 @@ export const companyService = {
     }
   },
 
-  // Get companies by type
+  // Modifying the existing getCompaniesByType method in lib/services/companyService.ts
+
+// The method is already defined, but needs to handle 'current' as a userId parameter
+// to work with our CompanyCombobox component. Here's how to update it:
+
   async getCompaniesByType(type: string, userId: string): Promise<Company[]> {
     try {
       console.log(`Fetching companies of type '${type}' for userId:`, userId);
-      const allCompanies = await this.getCompanies(userId);
-      return allCompanies.filter(company => company.type === type);
+      
+      // Special handling for 'current' userId which is a placeholder
+      // Our component passes 'current' but we need to get the actual userId
+      if (userId === 'current') {
+        // If we're in a browser context, we can get companies without specifying userId
+        // The API will use the authenticated user's ID from the auth session
+        const response = await fetch(`/api/companies?type=${encodeURIComponent(type)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          let errorMessage = `HTTP error: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+            console.error('API error response:', errorData);
+          } catch (e) {
+            const textError = await response.text().catch(() => '');
+            console.error('API text error response:', textError);
+          }
+          throw new Error(`Failed to fetch companies by type: ${errorMessage}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Companies of type '${type}' received:`, data);
+        return data.map(mapDbCompanyToCompany);
+      } else {
+        // Original implementation for when we have a specific userId
+        const allCompanies = await this.getCompanies(userId);
+        return allCompanies.filter(company => company.type === type);
+      }
     } catch (error) {
       console.error('Error in getCompaniesByType:', error);
       throw error;

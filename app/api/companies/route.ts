@@ -1,16 +1,19 @@
-// app/api/companies/route.ts
+// app/api/companies/route.ts (updated for type filtering)
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Verify authentication
     const { userId } = auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get optional type filter from query params
+    const type = request.nextUrl.searchParams.get('type');
 
     // Check environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,11 +38,20 @@ export async function GET(request: Request) {
     );
     
     // Fetch companies for the authenticated user
-    const { data, error } = await supabase
+    let query = supabase
       .from('companies')
       .select('*')
-      .eq('user_id', userId)
-      .order('name', { ascending: true });
+      .eq('user_id', userId);
+    
+    // Add type filter if provided
+    if (type) {
+      query = query.eq('type', type);
+    }
+    
+    // Order by name
+    query = query.order('name', { ascending: true });
+    
+    const { data, error } = await query;
       
     if (error) {
       console.error('Supabase error in API route:', error);
@@ -62,8 +74,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Add this POST handler to app/api/companies/route.ts
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Verify authentication
     const { userId } = auth();

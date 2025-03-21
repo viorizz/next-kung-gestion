@@ -21,10 +21,11 @@ export function ProjectCard({ project, onEditClick }: ProjectCardProps) {
     <Card className="bg-card hover:bg-accent/10 transition-colors">
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <div>
-          <CardTitle className="text-xl">{project.name}</CardTitle>
-          <div className="text-sm text-muted-foreground mt-1">
-            Project #{project.projectNumber}
-          </div>
+          {/* Updated format to show project number-name together */}
+          <CardTitle className="text-xl">
+            <span className="font-bold">{project.projectNumber}</span>-{project.name}
+          </CardTitle>
+          {/* Removed the separate display of Project # */}
         </div>
         <div className="flex flex-col items-end">
           <div className="text-sm px-3 py-1 rounded bg-primary/10 text-primary font-medium">
