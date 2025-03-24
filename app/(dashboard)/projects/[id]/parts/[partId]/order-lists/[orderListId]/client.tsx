@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, PlusIcon, Edit, Calendar, User, Building2, Package, ArrowLeft, FileText } from 'lucide-react';
+import { Loader2, PlusIcon, Edit, Calendar, User, Building2, Package, ArrowLeft, FileText, Download } from 'lucide-react';
 import { orderListService } from '@/lib/services/orderListService';
 import { itemService } from '@/lib/services/itemService';
 import { OrderList } from '@/types/orderList';
@@ -14,8 +14,12 @@ import { Item } from '@/types/item';
 import { OrderListDialog } from '@/components/ui/orderlistdialog';
 import { ItemDialog } from '@/components/ui/itemdialog';
 import { ItemTable } from '@/components/ui/itemtable';
+import { PDFViewer } from '@/components/ui/pdfviewer';
+import { getFormMapping, applyFormMapping } from '@/lib/pdf/formMapping';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { projectService } from '@/lib/services/projectService';
+import { projectPartService } from '@/lib/services/projectPartService';
 
 interface OrderListDetailClientProps {
   projectId: string;
@@ -25,6 +29,8 @@ interface OrderListDetailClientProps {
 
 export function OrderListDetailClient({ projectId, partId, orderListId }: OrderListDetailClientProps) {
   const { user, isLoaded } = useUser();
+  const [project, setProject] = useState<any>(null);
+  const [projectPart, setProjectPart] = useState<any>(null);
   const [orderList, setOrderList] = useState<OrderList | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +38,8 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [activeTab, setActiveTab] = useState('items');
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [formMapping, setFormMapping] = useState<Record<string, { source: string; field: string }>>({});
 
   useEffect(() => {
     // Fetch order list and items when user is loaded
@@ -52,6 +60,25 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
       // Fetch items for this order list
       const itemsData = await itemService.getItems(orderListId);
       setItems(itemsData);
+      
+      // Fetch project part details
+      const partData = await projectPartService.getProjectPart(partId);
+      setProjectPart(partData);
+      
+      // Fetch project details
+      const projectData = await projectService.getProject(projectId);
+      setProject(projectData);
+      
+      // Load form mapping based on manufacturer and product type
+      const mapping = getFormMapping(orderListData.manufacturer, orderListData.type);
+      setFormMapping(mapping);
+      
+      // Initialize PDF viewer if mapping exists
+      if (Object.keys(mapping).length > 0) {
+        setShowPdfViewer(true);
+      } else {
+        setShowPdfViewer(false);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while loading data');
@@ -319,6 +346,9 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
           <TabsTrigger value="items">
             Items ({items.length})
           </TabsTrigger>
+          <TabsTrigger value="pdf">
+            PDF Form
+          </TabsTrigger>
           <TabsTrigger value="documents">
             Documents
           </TabsTrigger>
@@ -331,7 +361,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
         <TabsContent value="items" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Order List Items</h2>
-            {orderList.status === 'draft' && (
+            {orderList?.status === 'draft' && (
               <Button onClick={() => setIsAddItemDialogOpen(true)}>
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Add Item
@@ -345,7 +375,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
                 <p className="text-muted-foreground mb-4">
                   No items found in this order list. Start by adding items to your order.
                 </p>
-                {orderList.status === 'draft' && (
+                {orderList?.status === 'draft' && (
                   <Button onClick={() => setIsAddItemDialogOpen(true)}>
                     <PlusIcon className="h-4 w-4 mr-2" />
                     Add First Item
@@ -358,8 +388,49 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
               items={items} 
               onEditItem={handleEditItem}
               onDeleteItem={handleDeleteItem}
-              readOnly={orderList.status !== 'draft'}
+              readOnly={orderList?.status !== 'draft'}
             />
+          )}
+        </TabsContent>
+        
+        {/* PDF Form Tab */}
+        <TabsContent value="pdf" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Order Form</h2>
+            <div className="flex gap-2">
+              {orderList?.status === 'draft' && (
+                <Button onClick={handleSubmitOrderList}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Submit Order
+                </Button>
+              )}
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+            </div>
+          </div>
+          
+          {showPdfViewer ? (
+            <PDFViewer
+              manufacturer={orderList?.manufacturer || ''}
+              productType={orderList?.type || ''}
+              projectData={project}
+              partData={projectPart}
+              orderListData={orderList}
+              isReadOnly={orderList?.status !== 'draft'}
+              formDataMapping={formMapping}
+            />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-bold mb-2">PDF Form Not Available</h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  No PDF form template is available for this manufacturer/product type combination.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
         
