@@ -1,12 +1,31 @@
+// app/(dashboard)/projects/[id]/parts/[partId]/order-lists/[orderListId]/client.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, PlusIcon, Edit, Calendar, User, Building2, Package, ArrowLeft, FileText, Download } from 'lucide-react';
+import {
+  Loader2,
+  PlusIcon,
+  Edit,
+  Calendar,
+  User,
+  Building2,
+  Package,
+  ArrowLeft,
+  FileText,
+  Download,
+} from 'lucide-react';
 import { orderListService } from '@/lib/services/orderListService';
 import { itemService } from '@/lib/services/itemService';
 import { OrderList } from '@/types/orderList';
@@ -14,7 +33,7 @@ import { Item } from '@/types/item';
 import { OrderListDialog } from '@/components/ui/orderlistdialog';
 import { ItemDialog } from '@/components/ui/itemdialog';
 import { ItemTable } from '@/components/ui/itemtable';
-import { PDFViewer } from '@/components/ui/pdfviewer';
+import { PDFViewer } from '@/components/ui/pdfviewer'; // Import PDFViewer
 import { getFormMapping, applyFormMapping } from '@/lib/pdf/formMapping';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -27,7 +46,11 @@ interface OrderListDetailClientProps {
   orderListId: string;
 }
 
-export function OrderListDetailClient({ projectId, partId, orderListId }: OrderListDetailClientProps) {
+export function OrderListDetailClient({
+  projectId,
+  partId,
+  orderListId,
+}: OrderListDetailClientProps) {
   const { user, isLoaded } = useUser();
   const [project, setProject] = useState<any>(null);
   const [projectPart, setProjectPart] = useState<any>(null);
@@ -39,7 +62,10 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [activeTab, setActiveTab] = useState('items');
   const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [formMapping, setFormMapping] = useState<Record<string, { source: string; field: string }>>({});
+  const [formMapping, setFormMapping] = useState<
+    Record<string, { source: string; field: string }>
+  >({});
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null); // Add state for the PDF URL
 
   useEffect(() => {
     // Fetch order list and items when user is loaded
@@ -60,25 +86,32 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
       // Fetch items for this order list
       const itemsData = await itemService.getItems(orderListId);
       setItems(itemsData);
-      
+
       // Fetch project part details
       const partData = await projectPartService.getProjectPart(partId);
       setProjectPart(partData);
-      
+
       // Fetch project details - use the full project_id from the part data
       const projectData = await projectService.getProject(partData.projectId);
       setProject(projectData);
-      
+
       // Load form mapping based on manufacturer and product type
-      const mapping = getFormMapping(orderListData.manufacturer, orderListData.type);
+      const mapping = getFormMapping(
+        orderListData.manufacturer,
+        orderListData.type
+      );
       setFormMapping(mapping);
-      
-      // Initialize PDF viewer if mapping exists
-      if (Object.keys(mapping).length > 0) {
-        setShowPdfViewer(true);
-      } else {
-        setShowPdfViewer(false);
-      }
+
+      // Determine the PDF URL based on manufacturer and product type
+      // Replace this with your actual logic to retrieve the PDF URL
+      const pdfURL = await getPdfUrl(
+        orderListData.manufacturer,
+        orderListData.type
+      ); // Implement this function
+      setPdfUrl(pdfURL);
+
+      // Initialize PDF viewer if URL exists
+      setShowPdfViewer(!!pdfURL);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while loading data');
@@ -87,11 +120,29 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
     }
   };
 
-  const handleUpdateOrderList = async (updatedOrderList: OrderList | Partial<OrderList>) => {
+  // This is a placeholder - replace with your actual logic to get the PDF URL
+  const getPdfUrl = async (
+    manufacturer: string,
+    type: string
+  ): Promise<string | null> => {
+    // Example: You might have a service that retrieves the URL from a database
+    // based on the manufacturer and type.
+    // Replace this with your actual implementation.
+    // For now, I'm returning a hardcoded URL.
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate an async call
+    return 'https://raw.githubusercontent.com/mozilla/pdf.js/ba2ede91baea5653470c190cae77ca5494c56bca/web/compressed.tracemonkey.pdf';
+  };
+
+  const handleUpdateOrderList = async (
+    updatedOrderList: OrderList | Partial<OrderList>
+  ) => {
     if (!user || !orderList) return;
-    
+
     try {
-      const result = await orderListService.updateOrderList(orderListId, updatedOrderList);
+      const result = await orderListService.updateOrderList(
+        orderListId,
+        updatedOrderList
+      );
       setOrderList(result);
       toast.success('Order list updated successfully');
       setIsEditDialogOpen(false);
@@ -103,19 +154,19 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
 
   const handleAddItem = async (item: Item | Partial<Item>) => {
     if (!user || !orderList) return;
-    
+
     try {
       // Ensure we have the order list ID
       const newItem = {
         ...item,
-        orderListId
+        orderListId,
       };
-      
+
       const result = await itemService.createItem(newItem);
-      
+
       // Update the items list with the new item
-      setItems(prevItems => [...prevItems, result]);
-      
+      setItems((prevItems) => [...prevItems, result]);
+
       toast.success('Item added successfully');
       setIsAddItemDialogOpen(false);
     } catch (error) {
@@ -126,15 +177,15 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
 
   const handleUpdateItem = async (item: Item | Partial<Item>) => {
     if (!user || !editingItem) return;
-    
+
     try {
       const result = await itemService.updateItem(editingItem.id, item);
-      
+
       // Update the items list with the updated item
-      setItems(prevItems => 
-        prevItems.map(i => i.id === editingItem.id ? result : i)
+      setItems((prevItems) =>
+        prevItems.map((i) => (i.id === editingItem.id ? result : i))
       );
-      
+
       toast.success('Item updated successfully');
       setEditingItem(null);
     } catch (error) {
@@ -145,17 +196,17 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
 
   const handleDeleteItem = async (itemId: string) => {
     if (!user) return;
-    
+
     if (!confirm('Are you sure you want to delete this item?')) {
       return;
     }
-    
+
     try {
       await itemService.deleteItem(itemId);
-      
+
       // Remove the deleted item from the list
-      setItems(prevItems => prevItems.filter(i => i.id !== itemId));
-      
+      setItems((prevItems) => prevItems.filter((i) => i.id !== itemId));
+
       toast.success('Item deleted successfully');
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -169,11 +220,15 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
 
   const handleSubmitOrderList = async () => {
     if (!user || !orderList) return;
-    
-    if (!confirm('Are you sure you want to submit this order list? This will mark it as submitted and set the submission date to today.')) {
+
+    if (
+      !confirm(
+        'Are you sure you want to submit this order list? This will mark it as submitted and set the submission date to today.'
+      )
+    ) {
       return;
     }
-    
+
     try {
       const result = await orderListService.submitOrderList(orderListId);
       setOrderList(result);
@@ -219,7 +274,8 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
       <div className="p-6">
         <div className="text-center py-12 border rounded-lg bg-card">
           <p className="text-muted-foreground">
-            The requested order list was not found or you don't have access to it.
+            The requested order list was not found or you don't have access to
+            it.
           </p>
           <Link href={`/projects/${projectId}/parts/${partId}`}>
             <Button className="mt-4">
@@ -236,17 +292,28 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
     <div className="p-6">
       {/* Breadcrumb */}
       <div className="text-sm text-muted-foreground mb-4">
-        <Link href="/dashboard" className="hover:underline">Dashboard</Link>
+        <Link href="/dashboard" className="hover:underline">
+          Dashboard
+        </Link>
         {' / '}
-        <Link href="/projects" className="hover:underline">Projects</Link>
+        <Link href="/projects" className="hover:underline">
+          Projects
+        </Link>
         {' / '}
-        <Link href={`/projects/${projectId}`} className="hover:underline">Project</Link>
+        <Link href={`/projects/${projectId}`} className="hover:underline">
+          Project
+        </Link>
         {' / '}
-        <Link href={`/projects/${projectId}/parts/${partId}`} className="hover:underline">Part</Link>
+        <Link
+          href={`/projects/${projectId}/parts/${partId}`}
+          className="hover:underline"
+        >
+          Part
+        </Link>
         {' / '}
         Order List {orderList.listNumber}
       </div>
-      
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -264,10 +331,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
           </div>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setIsEditDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Order List
           </Button>
@@ -279,7 +343,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
           )}
         </div>
       </div>
-      
+
       {/* Order List Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card>
@@ -290,13 +354,19 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Manufacturer: <span className="font-medium text-foreground">{orderList.manufacturer}</span>
+                Manufacturer:{' '}
+                <span className="font-medium text-foreground">
+                  {orderList.manufacturer}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Type: <span className="font-medium text-foreground">{orderList.type}</span>
+                Type:{' '}
+                <span className="font-medium text-foreground">
+                  {orderList.type}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -313,7 +383,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Team Information</CardTitle>
@@ -322,41 +392,39 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Designer: <span className="font-medium text-foreground">{orderList.designer}</span>
+                Designer:{' '}
+                <span className="font-medium text-foreground">
+                  {orderList.designer}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Project Manager: <span className="font-medium text-foreground">{orderList.projectManager}</span>
+                Project Manager:{' '}
+                <span className="font-medium text-foreground">
+                  {orderList.projectManager}
+                </span>
               </span>
             </div>
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Tabs for Items and other content */}
-      <Tabs 
-        defaultValue="items" 
+      <Tabs
+        defaultValue="items"
         value={activeTab}
         onValueChange={setActiveTab}
         className="mb-6"
       >
         <TabsList>
-          <TabsTrigger value="items">
-            Items ({items.length})
-          </TabsTrigger>
-          <TabsTrigger value="pdf">
-            PDF Form
-          </TabsTrigger>
-          <TabsTrigger value="documents">
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="history">
-            History
-          </TabsTrigger>
+          <TabsTrigger value="items">Items ({items.length})</TabsTrigger>
+          <TabsTrigger value="pdf">PDF Form</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-        
+
         {/* Items Tab */}
         <TabsContent value="items" className="space-y-4">
           <div className="flex justify-between items-center">
@@ -368,12 +436,13 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
               </Button>
             )}
           </div>
-          
+
           {items.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground mb-4">
-                  No items found in this order list. Start by adding items to your order.
+                  No items found in this order list. Start by adding items to
+                  your order.
                 </p>
                 {orderList?.status === 'draft' && (
                   <Button onClick={() => setIsAddItemDialogOpen(true)}>
@@ -384,15 +453,15 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
               </CardContent>
             </Card>
           ) : (
-            <ItemTable 
-              items={items} 
+            <ItemTable
+              items={items}
               onEditItem={handleEditItem}
               onDeleteItem={handleDeleteItem}
               readOnly={orderList?.status !== 'draft'}
             />
           )}
         </TabsContent>
-        
+
         {/* PDF Form Tab */}
         <TabsContent value="pdf" className="space-y-4">
           <div className="flex justify-between items-center">
@@ -410,11 +479,10 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
               </Button>
             </div>
           </div>
-          
+
           {showPdfViewer ? (
             <PDFViewer
-              manufacturer={orderList?.manufacturer || ''}
-              productType={orderList?.type || ''}
+              pdfUrl={pdfUrl} // Pass the PDF URL
               projectData={project}
               partData={projectPart}
               orderListData={orderList}
@@ -427,13 +495,14 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
                 <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-xl font-bold mb-2">PDF Form Not Available</h3>
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  No PDF form template is available for this manufacturer/product type combination.
+                  No PDF form template is available for this
+                  manufacturer/product type combination.
                 </p>
               </CardContent>
             </Card>
           )}
         </TabsContent>
-        
+
         {/* Documents Tab */}
         <TabsContent value="documents">
           <Card>
@@ -450,7 +519,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* History Tab */}
         <TabsContent value="history">
           <Card>
@@ -462,13 +531,14 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-center py-4">
-                Order list history tracking will be implemented in a future update.
+                Order list history tracking will be implemented in a future
+                update.
               </p>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Edit Order List Dialog */}
       <OrderListDialog
         open={isEditDialogOpen}
@@ -477,7 +547,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
         orderList={orderList}
         partId={partId}
       />
-      
+
       {/* Add Item Dialog */}
       <ItemDialog
         open={isAddItemDialogOpen}
@@ -487,7 +557,7 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
         manufacturer={orderList.manufacturer}
         productType={orderList.type}
       />
-      
+
       {/* Edit Item Dialog */}
       {editingItem && (
         <ItemDialog

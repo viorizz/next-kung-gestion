@@ -1,16 +1,13 @@
-'use client';
+// components/ui/pdfviewer.tsx
 
 import { useEffect, useRef, useState } from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { Loader2, FileText, Download } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 
 // Import PDF.js types
 import * as pdfjsLib from 'pdfjs-dist';
-import {
-  PDFDocumentProxy,
-  PDFPageProxy,
-} from 'pdfjs-dist/types/src/pdf';
+import { PDFDocumentProxy } from 'pdfjs-dist/types/src/pdf';
 
 interface PDFViewerProps {
   pdfUrl: string | null; // Now accepts the direct URL from UploadThing
@@ -39,13 +36,12 @@ export function PDFViewer({
   const [scale, setScale] = useState(1.0);
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  // Load the PDF when the URL changes
   useEffect(() => {
     let isMounted = true;
 
     const loadPDF = async () => {
       if (!pdfUrl) {
-        setError("No PDF URL provided");
+        setError('No PDF URL provided');
         setIsLoading(false);
         return;
       }
@@ -54,7 +50,6 @@ export function PDFViewer({
       setError(null);
 
       try {
-        // Fetch the PDF
         const response = await fetch(pdfUrl);
         if (!response.ok) {
           throw new Error(
@@ -63,11 +58,9 @@ export function PDFViewer({
         }
         const existingPdfBytes = await response.arrayBuffer();
 
-        // Load the PDF with pdf-lib
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
         setPdfLibDoc(pdfDoc);
-        
-        // Set the worker source
+
         pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
         const loadingTask = pdfjsLib.getDocument(pdfUrl);
@@ -78,9 +71,7 @@ export function PDFViewer({
       } catch (err: any) {
         console.error('Error loading PDF:', err);
         if (isMounted) {
-          setError(
-            `Failed to load PDF file: ${err.message}`
-          );
+          setError(`Failed to load PDF file: ${err.message}`);
         }
       } finally {
         if (isMounted) {
@@ -95,9 +86,6 @@ export function PDFViewer({
     };
   }, [pdfUrl]);
 
-  // Rest of the component stays mostly the same...
-  
-  // Render the current page
   useEffect(() => {
     const renderPage = async () => {
       if (!pdfJsDoc || !canvasRef.current) return;
@@ -129,7 +117,6 @@ export function PDFViewer({
     renderPage();
   }, [pdfJsDoc, currentPage, scale, isReadOnly]);
 
-  // Prepare data for form filling by mapping database fields to PDF form fields
   useEffect(() => {
     if (!projectData || !partData || !orderListData) return;
 
@@ -149,7 +136,6 @@ export function PDFViewer({
           value = orderListData[mapping.field] || '';
           break;
         case 'custom':
-          // Handle custom fields or calculations here
           if (mapping.field === 'currentDate') {
             value = new Date().toLocaleDateString();
           }
@@ -164,26 +150,22 @@ export function PDFViewer({
     setFormData(mappedData);
   }, [projectData, partData, orderListData, formDataMapping]);
 
-  // Export the PDF with filled form fields
   const handleExport = async () => {
     if (!pdfUrl) return;
 
     setIsLoading(true);
 
     try {
-      // Fetch the original PDF from UploadThing URL
       const response = await fetch(pdfUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch PDF from URL: ${response.status}`);
       }
-      
+
       const pdfBytes = await response.arrayBuffer();
 
-      // Load the PDF with pdf-lib
       const pdfDoc = await PDFDocument.load(pdfBytes);
       const form = pdfDoc.getForm();
 
-      // Fill in the form fields with our data
       Object.entries(formData).forEach(([fieldName, value]) => {
         try {
           const field = form.getTextField(fieldName);
@@ -195,23 +177,18 @@ export function PDFViewer({
         }
       });
 
-      // Flatten the form (make it non-editable)
       form.flatten();
 
-      // Save the PDF
       const filledPdfBytes = await pdfDoc.save();
 
-      // Create a download link
       const blob = new Blob([filledPdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      // Get filename from the UploadThing URL or create one
       const filename = pdfUrl.split('/').pop() || 'filled-form.pdf';
       link.download = `filled-${filename}`;
       link.click();
 
-      // Clean up
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error exporting PDF:', err);
@@ -221,7 +198,6 @@ export function PDFViewer({
     }
   };
 
-  // Handle page navigation
   const goToPreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
@@ -234,7 +210,6 @@ export function PDFViewer({
     }
   };
 
-  // Handle zoom
   const zoomIn = () => {
     setScale((prev) => Math.min(prev + 0.2, 3.0));
   };
@@ -262,7 +237,7 @@ export function PDFViewer({
         <FileText className="h-16 w-16 text-muted-foreground mb-4" />
         <h3 className="text-xl font-bold mb-2">PDF Form Not Available</h3>
         <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-          {error || "No PDF template has been uploaded for this product type."}
+          {error || 'No PDF template has been uploaded for this product type.'}
         </p>
       </div>
     );
@@ -270,7 +245,6 @@ export function PDFViewer({
 
   return (
     <div className="flex flex-col items-center">
-      {/* PDF controls */}
       <div className="flex justify-between items-center w-full mb-4">
         <div className="flex items-center gap-2">
           <Button
@@ -325,12 +299,10 @@ export function PDFViewer({
         </div>
       </div>
 
-      {/* PDF canvas */}
       <div className="border rounded-lg overflow-auto w-full bg-white shadow-sm">
         <canvas ref={canvasRef} className="mx-auto" />
       </div>
 
-      {/* Read-only warning if applicable */}
       {isReadOnly && (
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
           This order list has been submitted and cannot be modified. You can
