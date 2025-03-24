@@ -41,26 +41,25 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
 
   const fetchData = async () => {
     if (!user) return;
-    
+
     setIsLoading(true);
     try {
-      // Fetch project details
-      const projectData = await projectService.getProject(projectId);
-      setProject(projectData);
-      
-      // Fetch project part details
-      const partData = await projectPartService.getProjectPart(partId);
-      setProjectPart(partData);
-      
-      // Fetch order lists for this part
-      // Since the API endpoint doesn't exist yet, we'll use an empty array
-      // const orderListsData = await orderListService.getOrderLists(partId);
-      setOrderLists([]);
+        // Fetch project details
+        const projectData = await projectService.getProject(projectId);
+        setProject(projectData);
+
+        // Fetch project part details
+        const partData = await projectPartService.getProjectPart(partId);
+        setProjectPart(partData);
+
+        // Fetch order lists for this part
+        const orderListsData = await orderListService.getOrderLists(partId);
+        setOrderLists(orderListsData);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('An error occurred while loading data');
+        console.error('Error fetching data:', error);
+        toast.error('An error occurred while loading data');
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
 
