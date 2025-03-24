@@ -5,10 +5,14 @@ import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProjectPartDialog } from '@/components/ui/projectpartdialog';
+import { OrderListDialog } from '@/components/ui/orderlistdialog';
+import { OrderListCard } from '@/components/ui/orderlistcard';
 import { Loader2, ArrowLeft, PlusIcon, Edit, Calendar, User } from 'lucide-react';
 import { projectPartService } from '@/lib/services/projectPartService';
 import { projectService } from '@/lib/services/projectService';
+import { orderListService } from '@/lib/services/orderListService';
 import { ProjectPart } from '@/types/projectPart';
+import { OrderList, OrderListFormData } from '@/types/orderList';
 import { Project } from '@/types/project';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -22,11 +26,14 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
   const { user, isLoaded } = useUser();
   const [projectPart, setProjectPart] = useState<ProjectPart | null>(null);
   const [project, setProject] = useState<Project | null>(null);
+  const [orderLists, setOrderLists] = useState<OrderList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddOrderListDialogOpen, setIsAddOrderListDialogOpen] = useState(false);
+  const [editingOrderList, setEditingOrderList] = useState<OrderList | null>(null);
 
   useEffect(() => {
-    // Fetch project and project part when user is loaded
+    // Fetch project, project part, and order lists when user is loaded
     if (isLoaded && user) {
       fetchData();
     }
@@ -44,6 +51,10 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
       // Fetch project part details
       const partData = await projectPartService.getProjectPart(partId);
       setProjectPart(partData);
+      
+      // Fetch order lists for this part
+      const orderListsData = await orderListService.getOrderLists(partId);
+      setOrderLists(orderListsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while loading data');
@@ -71,6 +82,61 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
       console.error('Error updating project part:', error);
       toast.error('An error occurred while updating the project part');
     }
+  };
+
+  const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => {
+    if (!user || !projectPart) return;
+    
+    try {
+      const orderListData: OrderListFormData = {
+        partId: partId,
+        listNumber: orderList.listNumber || '',
+        name: orderList.name || '',
+        manufacturer: orderList.manufacturer || '',
+        type: orderList.type || '',
+        designer: orderList.designer || '',
+        projectManager: orderList.projectManager || '',
+        status: 'draft',
+        submissionDate: null
+      };
+      
+      await orderListService.createOrderList(orderListData);
+      toast.success('Order list created successfully');
+      setIsAddOrderListDialogOpen(false);
+      fetchData(); // Refresh the data
+    } catch (error) {
+      console.error('Error creating order list:', error);
+      toast.error('An error occurred while creating the order list');
+    }
+  };
+
+  const handleUpdateOrderList = async (orderList: OrderList | Partial<OrderList>) => {
+    if (!user || !editingOrderList) return;
+    
+    try {
+      const orderListId = editingOrderList.id;
+      
+      const updateData = {
+        listNumber: orderList.listNumber,
+        name: orderList.name,
+        manufacturer: orderList.manufacturer,
+        type: orderList.type,
+        designer: orderList.designer,
+        projectManager: orderList.projectManager
+      };
+      
+      await orderListService.updateOrderList(orderListId, updateData);
+      toast.success('Order list updated successfully');
+      setEditingOrderList(null);
+      fetchData(); // Refresh the data
+    } catch (error) {
+      console.error('Error updating order list:', error);
+      toast.error('An error occurred while updating the order list');
+    }
+  };
+
+  const handleOrderListEditClick = (orderList: OrderList) => {
+    setEditingOrderList(orderList);
   };
 
   const formatDate = (dateString: string) => {
@@ -130,12 +196,10 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
             <Edit className="h-4 w-4 mr-2" />
             Edit Part
           </Button>
-          <Link href={`/projects/${projectId}/parts/${partId}/order-lists/new`}>
-            <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              New Order List
-            </Button>
-          </Link>
+          <Button onClick={() => setIsAddOrderListDialogOpen(true)}>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            New Order List
+          </Button>
         </div>
       </div>
       
@@ -174,34 +238,46 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
         </Card>
       </div>
       
-      {/* Order Lists Section - Placeholder for future implementation */}
+      {/* Order Lists Section */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Order Lists</h2>
-          <Link href={`/projects/${projectId}/parts/${partId}/order-lists/new`}>
-            <Button variant="outline" size="sm">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              New Order List
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsAddOrderListDialogOpen(true)}
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            New Order List
+          </Button>
         </div>
         
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">
-              No order lists found for this part yet. Start by creating a new order list.
-            </p>
-            <Link href={`/projects/${projectId}/parts/${partId}/order-lists/new`}>
-              <Button>
+        {orderLists.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground mb-4">
+                No order lists found for this part yet. Start by creating a new order list.
+              </p>
+              <Button onClick={() => setIsAddOrderListDialogOpen(true)}>
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Create Order List
               </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {orderLists.map(orderList => (
+              <OrderListCard
+                key={orderList.id}
+                orderList={orderList}
+                onEditClick={() => handleOrderListEditClick(orderList)}
+              />
+            ))}
+          </div>
+        )}
       </div>
       
-      {/* Edit Dialog */}
+      {/* Project Part Edit Dialog */}
       <ProjectPartDialog 
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
@@ -209,6 +285,28 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
         projectPart={projectPart}
         projectId={projectId}
       />
+      
+      {/* Add Order List Dialog */}
+      <OrderListDialog
+        open={isAddOrderListDialogOpen}
+        onOpenChange={setIsAddOrderListDialogOpen}
+        onSave={handleAddOrderList}
+        partId={partId}
+        partName={projectPart.name}
+        defaultDesigner={projectPart.designer}
+        defaultProjectManager={projectPart.projectManager}
+      />
+      
+      {/* Edit Order List Dialog */}
+      {editingOrderList && (
+        <OrderListDialog
+          open={editingOrderList !== null}
+          onOpenChange={(open: boolean) => !open && setEditingOrderList(null)}
+          onSave={handleUpdateOrderList}
+          orderList={editingOrderList}
+          partId={partId}
+        />
+      )}
     </div>
   );
 }
