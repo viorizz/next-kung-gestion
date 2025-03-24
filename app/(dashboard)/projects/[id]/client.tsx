@@ -22,9 +22,10 @@ import {
 import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
 import { Project } from '@/types/project';
-import { ProjectPart } from '@/types/projectPart';
+import { ProjectPart, ProjectPartFormData } from '@/types/projectPart';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { ProjectPartDialog } from '@/components/ui/projectpartdialog';
 
 interface ProjectDetailClientProps {
   id: string;
@@ -36,6 +37,8 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
   const [projectParts, setProjectParts] = useState<ProjectPart[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAddPartDialogOpen, setIsAddPartDialogOpen] = useState(false);
+  const [editingProjectPart, setEditingProjectPart] = useState<ProjectPart | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -59,6 +62,67 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAddProjectPart = async (formData: ProjectPartFormData | Partial<ProjectPart>) => {
+    if (!user || !project) return;
+    
+    try {
+      // Ensure projectId is set
+      const partData: ProjectPartFormData = {
+        projectId: id,
+        partNumber: formData.partNumber || '',
+        name: formData.name || '',
+        designer: formData.designer || '',
+        projectManager: formData.projectManager || ''
+      };
+      
+      await projectPartService.createProjectPart(partData);
+      toast.success('Project part added successfully');
+      setIsAddPartDialogOpen(false);
+      fetchProjectDetails(); // Refresh the list
+    } catch (error) {
+      console.error('Error adding project part:', error);
+      toast.error('An error occurred while adding the project part');
+    }
+  };
+
+  const handleEditProjectPart = async (projectPart: ProjectPart | Partial<ProjectPart>) => {
+    if (!user) return;
+    
+    // Make sure we have an ID (should always be the case for editing)
+    if (!('id' in projectPart) || !projectPart.id) {
+      console.error('Cannot update project part without ID');
+      toast.error('An error occurred: Missing project part ID');
+      return;
+    }
+    
+    console.log('Editing project part:', projectPart);
+    
+    try {
+      // Use a non-null assertion since we've checked above
+      const partId: string = projectPart.id;
+      
+      const updateData: Partial<ProjectPartFormData> = {
+        partNumber: projectPart.partNumber,
+        name: projectPart.name,
+        designer: projectPart.designer,
+        projectManager: projectPart.projectManager
+      };
+      
+      await projectPartService.updateProjectPart(partId, updateData);
+      
+      toast.success('Project part updated successfully');
+      setEditingProjectPart(null);
+      fetchProjectDetails(); // Refresh the list
+    } catch (error) {
+      console.error('Error updating project part:', error);
+      toast.error('An error occurred while updating the project part');
+    }
+  };
+
+  const handleEditClick = (part: ProjectPart) => {
+    setEditingProjectPart(part);
   };
 
   const formatDate = (dateString: string) => {
@@ -112,12 +176,17 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
           <Button variant="outline" size="sm">
             Edit Project
           </Button>
-          <Link href={`/projects/${id}/parts`}>
-            <Button size="sm">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Project Part
-            </Button>
-          </Link>
+          <Button 
+            size="sm"
+            onClick={() => {
+              setIsAddPartDialogOpen(true);
+              // Optionally switch to parts tab
+              setActiveTab('parts');
+            }}
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Project Part
+          </Button>
         </div>
       </div>
       
@@ -210,12 +279,10 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
                 <p className="text-muted-foreground mb-4">
                   No project parts found. Start by adding a new part.
                 </p>
-                <Link href={`/projects/${id}/parts/new`}>
-                  <Button>
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Add Project Part
-                  </Button>
-                </Link>
+                <Button onClick={() => setIsAddPartDialogOpen(true)}>
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Project Part
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -234,6 +301,13 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
                           New Order List
                         </Button>
                       </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEditClick(part)}
+                      >
+                        Edit
+                      </Button>
                       <Link href={`/projects/${id}/parts/${part.id}`}>
                         <Button size="sm">
                           View Details
@@ -259,6 +333,27 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Add Project Part Dialog */}
+      <ProjectPartDialog 
+        open={isAddPartDialogOpen}
+        onOpenChange={setIsAddPartDialogOpen}
+        onSave={handleAddProjectPart}
+        projectId={id}
+        defaultDesigner={project.designer}
+        defaultProjectManager={project.projectManager}
+      />
+      
+      {/* Edit Project Part Dialog */}
+      {editingProjectPart && (
+        <ProjectPartDialog 
+          open={editingProjectPart !== null}
+          onOpenChange={(open: boolean) => !open && setEditingProjectPart(null)}
+          onSave={handleEditProjectPart}
+          projectPart={editingProjectPart}
+          projectId={id}
+        />
+      )}
     </div>
   );
 }
