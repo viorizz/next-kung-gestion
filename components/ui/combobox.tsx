@@ -78,6 +78,7 @@ export function Combobox({
               <CommandItem
                 key={item.value}
                 value={item.value}
+                disabled={false} // Assurez-vous que cette valeur est explicitement false
                 onSelect={() => handleSelect(item.value)}
               >
                 <Check

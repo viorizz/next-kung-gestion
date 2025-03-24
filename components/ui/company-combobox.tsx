@@ -58,6 +58,7 @@ export function CompanyCombobox({
 
   return (
     <Combobox
+    
       items={companies}
       value={value || ""}
       onChange={onChange}
