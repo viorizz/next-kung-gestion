@@ -11,6 +11,7 @@ import {
   PDFDocumentProxy,
   PDFPageProxy,
 } from 'pdfjs-dist/types/src/pdf';
+
 // This would typically be imported from a config file
 const PDF_CDN_URL = 'https://cdn.kung-gestion.com';
 
@@ -34,7 +35,8 @@ export function PDFViewer({
   formDataMapping,
 }: PDFViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
+  const [pdfLibDoc, setPdfLibDoc] = useState<PDFDocument | null>(null);
+  const [pdfJsDoc, setPdfJsDoc] = useState<PDFDocumentProxy | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,13 +73,20 @@ export function PDFViewer({
       setError(null);
 
       try {
-        // Dynamically import PDF.js to avoid SSR issues
+        // Fetch the PDF
+        const response = await fetch(pdfUrl);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const existingPdfBytes = await response.arrayBuffer();
+
+        // Load the PDF with pdf-lib
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        setPdfLibDoc(pdfDoc);
         // Set the worker source
         pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
         const loadingTask = pdfjsLib.getDocument(pdfUrl);
         const pdfDocument = await loadingTask.promise;
-        setPdf(pdfDocument);
+        setPdfJsDoc(pdfDocument);
         setTotalPages(pdfDocument.numPages);
         setCurrentPage(1);
       } catch (err) {
@@ -96,10 +105,16 @@ export function PDFViewer({
   // Render the current page
   useEffect(() => {
     const renderPage = async () => {
-      if (!pdf || !canvasRef.current) return;
+      if (!pdfJsDoc || !canvasRef.current) return;
 
       try {
-        const page = await pdf.getPage(currentPage);
+        // Fetch the PDF
+        const response = await fetch(pdfUrl);
+        const existingPdfBytes = await response.arrayBuffer();
+        // Load the PDF with pdf-lib
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+        const page = await pdfJsDoc.getPage(currentPage);
         const viewport = page.getViewport({ scale });
 
         const canvas = canvasRef.current;
@@ -117,18 +132,13 @@ export function PDFViewer({
         };
 
         await page.render(renderContext).promise;
-
-        // If not in read-only mode, extract and fill form fields
-        if (!isReadOnly) {
-          await extractFormFields(page);
-        }
       } catch (err) {
         console.error('Error rendering page:', err);
       }
     };
 
     renderPage();
-  }, [pdf, currentPage, scale, isReadOnly]);
+  }, [pdfJsDoc, currentPage, scale, isReadOnly]);
 
   // Prepare data for form filling by mapping database fields to PDF form fields
   useEffect(() => {
