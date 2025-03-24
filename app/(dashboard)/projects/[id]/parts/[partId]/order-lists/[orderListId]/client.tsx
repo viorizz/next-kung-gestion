@@ -65,8 +65,8 @@ export function OrderListDetailClient({ projectId, partId, orderListId }: OrderL
       const partData = await projectPartService.getProjectPart(partId);
       setProjectPart(partData);
       
-      // Fetch project details
-      const projectData = await projectService.getProject(projectId);
+      // Fetch project details - use the full project_id from the part data
+      const projectData = await projectService.getProject(partData.projectId);
       setProject(projectData);
       
       // Load form mapping based on manufacturer and product type
