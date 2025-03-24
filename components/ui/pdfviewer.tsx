@@ -73,7 +73,7 @@ export function PDFViewer({
       try {
         // Dynamically import PDF.js to avoid SSR issues
         // Set the worker source
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
         const loadingTask = pdfjsLib.getDocument(pdfUrl);
         const pdfDocument = await loadingTask.promise;
