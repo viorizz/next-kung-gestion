@@ -43,6 +43,7 @@ export function CompanyCombobox({
           label: company.name
         }));
         
+        console.log(`Loaded ${items.length} companies for type ${companyType || 'all'}`);
         setCompanies(items);
       } catch (error) {
         console.error('Failed to load companies:', error);
@@ -58,9 +59,8 @@ export function CompanyCombobox({
 
   return (
     <Combobox
-    
       items={companies}
-      value={value || ""}
+      value={value}
       onChange={onChange}
       placeholder={loading ? 'Loading...' : placeholder}
       emptyMessage={loading ? 'Loading companies...' : 'No companies found.'}

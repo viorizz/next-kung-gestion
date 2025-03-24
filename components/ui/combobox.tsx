@@ -74,22 +74,26 @@ export function Combobox({
           />
           <CommandEmpty>{emptyMessage}</CommandEmpty>
           <CommandGroup>
-            {items.map((item) => (
-              <CommandItem
-                key={item.value}
-                value={item.value}
-                disabled={false} // Assurez-vous que cette valeur est explicitement false
-                onSelect={() => handleSelect(item.value)}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === item.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {item.label}
-              </CommandItem>
-            ))}
+            {items
+              .filter(item => 
+                item.label.toLowerCase().includes(searchValue.toLowerCase())
+              )
+              .map((item) => (
+                <CommandItem
+                  key={item.value}
+                  value={item.value}
+                  onSelect={() => handleSelect(item.value)}
+                  className="cursor-pointer"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === item.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {item.label}
+                </CommandItem>
+              ))}
           </CommandGroup>
         </Command>
       </PopoverContent>
