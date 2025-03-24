@@ -23,9 +23,11 @@ import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
 import { Project } from '@/types/project';
 import { ProjectPart, ProjectPartFormData } from '@/types/projectPart';
+import { OrderList, OrderListFormData } from '@/types/orderList'; // Make sure this type is defined
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ProjectPartDialog } from '@/components/ui/projectpartdialog';
+import { OrderListDialog } from '@/components/ui/orderlistdialog';
 
 interface ProjectDetailClientProps {
   id: string;
@@ -39,6 +41,10 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isAddPartDialogOpen, setIsAddPartDialogOpen] = useState(false);
   const [editingProjectPart, setEditingProjectPart] = useState<ProjectPart | null>(null);
+  
+  // State for order list dialog
+  const [isAddOrderListDialogOpen, setIsAddOrderListDialogOpen] = useState(false);
+  const [selectedPartForOrderList, setSelectedPartForOrderList] = useState<ProjectPart | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -123,6 +129,50 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
 
   const handleEditClick = (part: ProjectPart) => {
     setEditingProjectPart(part);
+  };
+
+  // Handler for opening order list dialog for a specific part
+  const handleAddOrderListClick = (part: ProjectPart) => {
+    setSelectedPartForOrderList(part);
+    setIsAddOrderListDialogOpen(true);
+  };
+
+  // Handler for creating a new order list
+  const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => {
+    if (!user || !selectedPartForOrderList) return;
+    
+    try {
+      // This function would be implemented as part of the orderListService
+      // For now, we'll just show a toast as the API endpoint doesn't exist yet
+      /*
+      const orderListData: OrderListFormData = {
+        partId: selectedPartForOrderList.id,
+        listNumber: orderList.listNumber || '',
+        name: orderList.name || '',
+        manufacturer: orderList.manufacturer || '',
+        type: orderList.type || '',
+        designer: orderList.designer || '',
+        projectManager: orderList.projectManager || '',
+        status: 'draft',
+        submissionDate: null
+      };
+      
+      await orderListService.createOrderList(orderListData);
+      */
+      
+      // For now, just show success message without actually creating
+      console.log('Would create order list:', {
+        partId: selectedPartForOrderList.id,
+        ...orderList
+      });
+      
+      toast.success('Order list creation feature coming soon!');
+      setIsAddOrderListDialogOpen(false);
+      setSelectedPartForOrderList(null);
+    } catch (error) {
+      console.error('Error creating order list:', error);
+      toast.error('An error occurred while creating the order list');
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -295,12 +345,14 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
                       <CardDescription>Part #{part.partNumber}</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      <Link href={`/projects/${id}/parts/${part.id}/order-lists/new`}>
-                        <Button variant="outline" size="sm">
-                          <PlusIcon className="h-3 w-3 mr-1" />
-                          New Order List
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleAddOrderListClick(part)}
+                      >
+                        <PlusIcon className="h-3 w-3 mr-1" />
+                        New Order List
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -352,6 +404,22 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
           onSave={handleEditProjectPart}
           projectPart={editingProjectPart}
           projectId={id}
+        />
+      )}
+      
+      {/* Add Order List Dialog */}
+      {selectedPartForOrderList && (
+        <OrderListDialog
+          open={isAddOrderListDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddOrderListDialogOpen(open);
+            if (!open) setSelectedPartForOrderList(null);
+          }}
+          onSave={handleAddOrderList}
+          partId={selectedPartForOrderList.id}
+          partName={selectedPartForOrderList.name}
+          defaultDesigner={selectedPartForOrderList.designer}
+          defaultProjectManager={selectedPartForOrderList.projectManager}
         />
       )}
     </div>

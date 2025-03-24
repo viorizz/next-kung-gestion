@@ -9,9 +9,10 @@ import Link from 'next/link';
 interface ProjectPartCardProps {
   projectPart: ProjectPart;
   onEditClick: () => void;
+  onAddOrderListClick?: () => void; // Added callback for opening order list dialog
 }
 
-export function ProjectPartCard({ projectPart, onEditClick }: ProjectPartCardProps) {
+export function ProjectPartCard({ projectPart, onEditClick, onAddOrderListClick }: ProjectPartCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString();
@@ -51,9 +52,21 @@ export function ProjectPartCard({ projectPart, onEditClick }: ProjectPartCardPro
         <Link href={`/projects/${projectPart.projectId}/parts/${projectPart.id}`}>
           <Button variant="outline" size="sm">View Details</Button>
         </Link>
-        <Button variant="ghost" size="sm" onClick={onEditClick}>
-          Edit
-        </Button>
+        <div className="flex gap-2">
+          {/* Conditionally render the Add Order List button if callback is provided */}
+          {onAddOrderListClick && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onAddOrderListClick}
+            >
+              New Order List
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onEditClick}>
+            Edit
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

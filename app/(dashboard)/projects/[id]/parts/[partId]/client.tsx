@@ -10,7 +10,6 @@ import { OrderListCard } from '@/components/ui/orderlistcard';
 import { Loader2, ArrowLeft, PlusIcon, Edit, Calendar, User } from 'lucide-react';
 import { projectPartService } from '@/lib/services/projectPartService';
 import { projectService } from '@/lib/services/projectService';
-import { orderListService } from '@/lib/services/orderListService';
 import { ProjectPart } from '@/types/projectPart';
 import { OrderList, OrderListFormData } from '@/types/orderList';
 import { Project } from '@/types/project';
@@ -53,8 +52,9 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
       setProjectPart(partData);
       
       // Fetch order lists for this part
-      const orderListsData = await orderListService.getOrderLists(partId);
-      setOrderLists(orderListsData);
+      // Since the API endpoint doesn't exist yet, we'll use an empty array
+      // const orderListsData = await orderListService.getOrderLists(partId);
+      setOrderLists([]);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while loading data');
@@ -88,22 +88,14 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
     if (!user || !projectPart) return;
     
     try {
-      const orderListData: OrderListFormData = {
+      // This would call the API, but since it doesn't exist yet, we'll just log and show a toast
+      console.log('Would create order list:', {
         partId: partId,
-        listNumber: orderList.listNumber || '',
-        name: orderList.name || '',
-        manufacturer: orderList.manufacturer || '',
-        type: orderList.type || '',
-        designer: orderList.designer || '',
-        projectManager: orderList.projectManager || '',
-        status: 'draft',
-        submissionDate: null
-      };
+        ...orderList
+      });
       
-      await orderListService.createOrderList(orderListData);
-      toast.success('Order list created successfully');
+      toast.success('Order list creation feature coming soon!');
       setIsAddOrderListDialogOpen(false);
-      fetchData(); // Refresh the data
     } catch (error) {
       console.error('Error creating order list:', error);
       toast.error('An error occurred while creating the order list');
@@ -114,21 +106,14 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
     if (!user || !editingOrderList) return;
     
     try {
-      const orderListId = editingOrderList.id;
+      // This would call the API, but since it doesn't exist yet, we'll just log and show a toast
+      console.log('Would update order list:', {
+        id: editingOrderList.id,
+        ...orderList
+      });
       
-      const updateData = {
-        listNumber: orderList.listNumber,
-        name: orderList.name,
-        manufacturer: orderList.manufacturer,
-        type: orderList.type,
-        designer: orderList.designer,
-        projectManager: orderList.projectManager
-      };
-      
-      await orderListService.updateOrderList(orderListId, updateData);
-      toast.success('Order list updated successfully');
+      toast.success('Order list update feature coming soon!');
       setEditingOrderList(null);
-      fetchData(); // Refresh the data
     } catch (error) {
       console.error('Error updating order list:', error);
       toast.error('An error occurred while updating the order list');
