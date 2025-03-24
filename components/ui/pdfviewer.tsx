@@ -11,7 +11,8 @@ import { PDFDocument } from 'pdf-lib';
 const PDF_CDN_URL = 'https://cdn.kung-gestion.com';
 
 // Set worker for PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Use a specific version that's available in CDNJS
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 interface PDFViewerProps {
   manufacturer: string;
@@ -52,7 +53,6 @@ export function PDFViewer({
       // Construct the PDF URL
       const url = `${PDF_CDN_URL}/${formattedManufacturer}-${formattedProductType}.pdf`;
       setPdfUrl(url);
-      console.log("PDF Url constructed:" + url);
     }
   }, [manufacturer, productType]);
 
