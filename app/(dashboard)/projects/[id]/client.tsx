@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
+import { orderListService } from '@/lib/services/orderListService';
 import { Project } from '@/types/project';
 import { ProjectPart, ProjectPartFormData } from '@/types/projectPart';
 import { OrderList, OrderListFormData } from '@/types/orderList'; // Make sure this type is defined
@@ -137,43 +138,38 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
     setIsAddOrderListDialogOpen(true);
   };
 
-  // Handler for creating a new order list
-  const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => {
-    if (!user || !selectedPartForOrderList) return;
+// Handler for creating a new order list
+const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => {
+  if (!user || !selectedPartForOrderList) return;
+  
+  try {
+    // Prepare the order list data
+    const orderListData: OrderListFormData = {
+      partId: selectedPartForOrderList.id,
+      listNumber: orderList.listNumber || '',
+      name: orderList.name || '',
+      manufacturer: orderList.manufacturer || '',
+      type: orderList.type || '',
+      designer: orderList.designer || '',
+      projectManager: orderList.projectManager || '',
+      status: 'draft',
+      submissionDate: null
+    };
     
-    try {
-      // This function would be implemented as part of the orderListService
-      // For now, we'll just show a toast as the API endpoint doesn't exist yet
-      /*
-      const orderListData: OrderListFormData = {
-        partId: selectedPartForOrderList.id,
-        listNumber: orderList.listNumber || '',
-        name: orderList.name || '',
-        manufacturer: orderList.manufacturer || '',
-        type: orderList.type || '',
-        designer: orderList.designer || '',
-        projectManager: orderList.projectManager || '',
-        status: 'draft',
-        submissionDate: null
-      };
-      
-      await orderListService.createOrderList(orderListData);
-      */
-      
-      // For now, just show success message without actually creating
-      console.log('Would create order list:', {
-        partId: selectedPartForOrderList.id,
-        ...orderList
-      });
-      
-      toast.success('Order list creation feature coming soon!');
-      setIsAddOrderListDialogOpen(false);
-      setSelectedPartForOrderList(null);
-    } catch (error) {
-      console.error('Error creating order list:', error);
-      toast.error('An error occurred while creating the order list');
-    }
-  };
+    // Create the order list using the service
+    await orderListService.createOrderList(orderListData);
+    
+    toast.success('Order list created successfully');
+    setIsAddOrderListDialogOpen(false);
+    setSelectedPartForOrderList(null);
+    
+    // Optionally, we could refresh the project details here
+    // fetchProjectDetails();
+  } catch (error) {
+    console.error('Error creating order list:', error);
+    toast.error('An error occurred while creating the order list');
+  }
+};
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

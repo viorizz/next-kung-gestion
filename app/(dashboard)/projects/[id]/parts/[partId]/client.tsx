@@ -10,6 +10,7 @@ import { OrderListCard } from '@/components/ui/orderlistcard';
 import { Loader2, ArrowLeft, PlusIcon, Edit, Calendar, User } from 'lucide-react';
 import { projectPartService } from '@/lib/services/projectPartService';
 import { projectService } from '@/lib/services/projectService';
+import { orderListService } from '@/lib/services/orderListService';
 import { ProjectPart } from '@/types/projectPart';
 import { OrderList, OrderListFormData } from '@/types/orderList';
 import { Project } from '@/types/project';
@@ -88,14 +89,27 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
     if (!user || !projectPart) return;
     
     try {
-      // This would call the API, but since it doesn't exist yet, we'll just log and show a toast
-      console.log('Would create order list:', {
+      // Ensure we have all required fields
+      const orderListData: OrderListFormData = {
         partId: partId,
-        ...orderList
-      });
+        listNumber: orderList.listNumber || '',
+        name: orderList.name || '',
+        manufacturer: orderList.manufacturer || '',
+        type: orderList.type || '',
+        designer: orderList.designer || '',
+        projectManager: orderList.projectManager || '',
+        status: 'draft',
+        submissionDate: null
+      };
       
-      toast.success('Order list creation feature coming soon!');
+      // Use the service to create the order list
+      const result = await orderListService.createOrderList(orderListData);
+      
+      toast.success('Order list created successfully!');
       setIsAddOrderListDialogOpen(false);
+      
+      // Refresh the data to include the new order list
+      fetchData();
     } catch (error) {
       console.error('Error creating order list:', error);
       toast.error('An error occurred while creating the order list');
@@ -106,14 +120,14 @@ export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDe
     if (!user || !editingOrderList) return;
     
     try {
-      // This would call the API, but since it doesn't exist yet, we'll just log and show a toast
-      console.log('Would update order list:', {
-        id: editingOrderList.id,
-        ...orderList
-      });
+      // Use the service to update the order list
+      await orderListService.updateOrderList(editingOrderList.id, orderList);
       
-      toast.success('Order list update feature coming soon!');
+      toast.success('Order list updated successfully!');
       setEditingOrderList(null);
+      
+      // Refresh the data to reflect the updates
+      fetchData();
     } catch (error) {
       console.error('Error updating order list:', error);
       toast.error('An error occurred while updating the order list');

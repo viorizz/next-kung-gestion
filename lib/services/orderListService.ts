@@ -53,8 +53,8 @@ export const orderListService = {
     }
   },
 
-  // Create a new order list
-  async createOrderList(orderListData: OrderListFormData): Promise<OrderList> {
+// Create a new order list
+async createOrderList(orderListData: OrderListFormData): Promise<OrderList> {
     try {
       // Convert frontend model to database model format expected by the API
       const apiData = {
