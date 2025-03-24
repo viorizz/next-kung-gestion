@@ -1,8 +1,13 @@
 // schema.prisma
 datasource db {
   provider = "postgresql"  // Or your database provider
-  url      = env("https://zstbaxkwhstnbjcqmkpd.supabase.co || NEXT_PUBLIC_SUPABASE_URL")
+  url      = env("DATABASE_URL")
 }
+
+generator client {
+  provider = "prisma-client-js"
+}
+
 
 model PdfTemplate {
   id          String   @id @default(uuid())
