@@ -74,8 +74,12 @@ export function PDFViewer({
 
       try {
         // Fetch the PDF
-        const response = await fetch(pdfUrl);
-        if (!response.ok) throw new Error('Network response was not ok');
+        const response = await fetch(pdfUrl, { mode: 'cors' });
+        if (!response.ok) {
+          throw new Error(
+            `Network response was not ok: ${response.status} ${response.statusText}`
+          );
+        }
         const existingPdfBytes = await response.arrayBuffer();
 
         // Load the PDF with pdf-lib
@@ -89,10 +93,10 @@ export function PDFViewer({
         setPdfJsDoc(pdfDocument);
         setTotalPages(pdfDocument.numPages);
         setCurrentPage(1);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading PDF:', err);
         setError(
-          'Failed to load PDF file. Please ensure the form template exists for this product type.'
+          `Failed to load PDF file. Please ensure the form template exists for this product type. ${err.message}`
         );
       } finally {
         setIsLoading(false);
@@ -108,12 +112,6 @@ export function PDFViewer({
       if (!pdfJsDoc || !canvasRef.current) return;
 
       try {
-        // Fetch the PDF
-        const response = await fetch(pdfUrl);
-        const existingPdfBytes = await response.arrayBuffer();
-        // Load the PDF with pdf-lib
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
         const page = await pdfJsDoc.getPage(currentPage);
         const viewport = page.getViewport({ scale });
 
