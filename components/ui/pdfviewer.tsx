@@ -52,6 +52,7 @@ export function PDFViewer({
       // Construct the PDF URL
       const url = `${PDF_CDN_URL}/${formattedManufacturer}-${formattedProductType}.pdf`;
       setPdfUrl(url);
+      console.log("PDF Url constructed:" + url);
     }
   }, [manufacturer, productType]);
 
