@@ -112,7 +112,7 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
           <Button variant="outline" size="sm">
             Edit Project
           </Button>
-          <Link href={`/projects/${id}/parts/new`}>
+          <Link href={`/projects/${id}/parts`}>
             <Button size="sm">
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Project Part
