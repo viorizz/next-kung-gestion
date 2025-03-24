@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import { Loader2, FileText, Download } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 
@@ -12,12 +12,8 @@ import {
   PDFPageProxy,
 } from 'pdfjs-dist/types/src/pdf';
 
-// This would typically be imported from a config file
-const PDF_CDN_URL = 'https://cdn.kung-gestion.com';
-
 interface PDFViewerProps {
-  manufacturer: string;
-  productType: string;
+  pdfUrl: string | null; // Now accepts the direct URL from UploadThing
   projectData: any;
   partData: any;
   orderListData: any;
@@ -26,8 +22,7 @@ interface PDFViewerProps {
 }
 
 export function PDFViewer({
-  manufacturer,
-  productType,
+  pdfUrl,
   projectData,
   partData,
   orderListData,
@@ -37,7 +32,6 @@ export function PDFViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfLibDoc, setPdfLibDoc] = useState<PDFDocument | null>(null);
   const [pdfJsDoc, setPdfJsDoc] = useState<PDFDocumentProxy | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,38 +39,23 @@ export function PDFViewer({
   const [scale, setScale] = useState(1.0);
   const [formData, setFormData] = useState<Record<string, string>>({});
 
-  // Format manufacturer and product type for the URL
-  useEffect(() => {
-    if (manufacturer && productType) {
-      // Convert to uppercase and replace spaces with hyphens
-      const formattedManufacturer = manufacturer.toUpperCase().replace(
-        /\s+/g,
-        '-'
-      );
-      const formattedProductType = productType.toUpperCase().replace(
-        /\s+/g,
-        '-'
-      );
-
-      // Construct the PDF URL
-      const url = `${PDF_CDN_URL}/${formattedManufacturer}-${formattedProductType}.pdf`;
-      setPdfUrl(url);
-    }
-  }, [manufacturer, productType]);
-
   // Load the PDF when the URL changes
   useEffect(() => {
     let isMounted = true;
 
     const loadPDF = async () => {
-      if (!pdfUrl) return;
+      if (!pdfUrl) {
+        setError("No PDF URL provided");
+        setIsLoading(false);
+        return;
+      }
 
       setIsLoading(true);
       setError(null);
 
       try {
         // Fetch the PDF
-        const response = await fetch(pdfUrl, { mode: 'cors' });
+        const response = await fetch(pdfUrl);
         if (!response.ok) {
           throw new Error(
             `Network response was not ok: ${response.status} ${response.statusText}`
@@ -87,6 +66,7 @@ export function PDFViewer({
         // Load the PDF with pdf-lib
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
         setPdfLibDoc(pdfDoc);
+        
         // Set the worker source
         pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.js`;
 
@@ -99,7 +79,7 @@ export function PDFViewer({
         console.error('Error loading PDF:', err);
         if (isMounted) {
           setError(
-            `Failed to load PDF file. Please ensure the form template exists for this product type. ${err.message}`
+            `Failed to load PDF file: ${err.message}`
           );
         }
       } finally {
@@ -115,6 +95,8 @@ export function PDFViewer({
     };
   }, [pdfUrl]);
 
+  // Rest of the component stays mostly the same...
+  
   // Render the current page
   useEffect(() => {
     const renderPage = async () => {
@@ -166,8 +148,13 @@ export function PDFViewer({
         case 'orderList':
           value = orderListData[mapping.field] || '';
           break;
-        default:
+        case 'custom':
           // Handle custom fields or calculations here
+          if (mapping.field === 'currentDate') {
+            value = new Date().toLocaleDateString();
+          }
+          break;
+        default:
           break;
       }
 
@@ -177,27 +164,6 @@ export function PDFViewer({
     setFormData(mappedData);
   }, [projectData, partData, orderListData, formDataMapping]);
 
-  // Extract form fields from the PDF
-  const extractFormFields = async (page: PDFPageProxy) => {
-    try {
-      const annotations = await page.getAnnotations();
-      const formFields = annotations.filter(
-        (ann: any) => ann.subtype === 'Widget'
-      );
-
-      // Map form fields to their positions and types
-      console.log('Form fields found:', formFields.length);
-      formFields.forEach((field: any) => {
-        console.log('Field:', field.fieldName, 'Type:', field.fieldType);
-      });
-
-      // In a real implementation, we would modify the PDF here to fill in the values
-      // However, direct form field modification requires additional libraries
-    } catch (err) {
-      console.error('Error extracting form fields:', err);
-    }
-  };
-
   // Export the PDF with filled form fields
   const handleExport = async () => {
     if (!pdfUrl) return;
@@ -205,8 +171,12 @@ export function PDFViewer({
     setIsLoading(true);
 
     try {
-      // Fetch the original PDF
+      // Fetch the original PDF from UploadThing URL
       const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF from URL: ${response.status}`);
+      }
+      
       const pdfBytes = await response.arrayBuffer();
 
       // Load the PDF with pdf-lib
@@ -236,7 +206,9 @@ export function PDFViewer({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${manufacturer}-${productType}-filled.pdf`;
+      // Get filename from the UploadThing URL or create one
+      const filename = pdfUrl.split('/').pop() || 'filled-form.pdf';
+      link.download = `filled-${filename}`;
       link.click();
 
       // Clean up
@@ -247,11 +219,6 @@ export function PDFViewer({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Print the current view using browser's print functionality
-  const handlePrint = () => {
-    window.print();
   };
 
   // Handle page navigation
@@ -276,6 +243,10 @@ export function PDFViewer({
     setScale((prev) => Math.max(prev - 0.2, 0.5));
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px]">
@@ -285,21 +256,14 @@ export function PDFViewer({
     );
   }
 
-  if (error) {
+  if (error || !pdfUrl) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] text-center">
         <FileText className="h-16 w-16 text-muted-foreground mb-4" />
         <h3 className="text-xl font-bold mb-2">PDF Form Not Available</h3>
         <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-          {error}
+          {error || "No PDF template has been uploaded for this product type."}
         </p>
-        <Button
-          variant="outline"
-          onClick={() => window.open(pdfUrl, '_blank')}
-          disabled={!pdfUrl}
-        >
-          Try Open Original PDF
-        </Button>
       </div>
     );
   }
