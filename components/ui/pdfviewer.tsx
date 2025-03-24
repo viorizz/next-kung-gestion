@@ -66,6 +66,8 @@ export function PDFViewer({
 
   // Load the PDF when the URL changes
   useEffect(() => {
+    let isMounted = true;
+
     const loadPDF = async () => {
       if (!pdfUrl) return;
 
@@ -95,15 +97,22 @@ export function PDFViewer({
         setCurrentPage(1);
       } catch (err: any) {
         console.error('Error loading PDF:', err);
-        setError(
-          `Failed to load PDF file. Please ensure the form template exists for this product type. ${err.message}`
-        );
+        if (isMounted) {
+          setError(
+            `Failed to load PDF file. Please ensure the form template exists for this product type. ${err.message}`
+          );
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadPDF();
+    return () => {
+      isMounted = false;
+    };
   }, [pdfUrl]);
 
   // Render the current page
