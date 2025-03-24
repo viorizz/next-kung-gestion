@@ -85,7 +85,7 @@ export function OrderListCard({ orderList, onEditClick }: OrderListCardProps) {
       </CardContent>
       
       <CardFooter className="flex justify-between">
-        <Link href={`/projects/${orderList.partId}/order-lists/${orderList.id}`}>
+        <Link href={`/projects/${orderList.partId.split('-')[0]}/parts/${orderList.partId}/order-lists/${orderList.id}`}>
           <Button variant="outline" size="sm">View Details</Button>
         </Link>
         <Button variant="ghost" size="sm" onClick={onEditClick}>
