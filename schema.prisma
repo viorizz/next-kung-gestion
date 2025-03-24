@@ -1,0 +1,12 @@
+// schema.prisma
+
+model PdfTemplate {
+  id          String   @id @default(uuid())
+  manufacturer String
+  productType String
+  pdfUrl      String?  @db.Text // Allow null PDF URLs
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String // Store the ID of the user who uploaded the template
+  @@index([userId])
+}

@@ -10,11 +10,39 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import { PDFManager } from '@/components/ui/pdf-manager'; // Assuming this is where you put PDFManager
-import { PlusIcon, Loader2 } from 'lucide-react';
+import {
+  PlusIcon,
+  Loader2
+} from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import pdfTemplateService from '@/lib/services/pdfTemplateService';
 
 // Define a type or interface for your PDF template data
 interface PdfTemplate {
@@ -23,54 +51,23 @@ interface PdfTemplate {
   productType: string;
   pdfUrl: string | null;
   // Add other relevant fields, like createdBy, createdAt, etc.
+  userId: string;
 }
 
-// Placeholder service functions - replace with your actual data access logic
-const pdfTemplateService = {
-  getTemplates: async (): Promise<PdfTemplate[]> => {
-    // Replace with your actual data fetching logic
-    // This is just a placeholder
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return [];
-  },
-  createTemplate: async (
-    manufacturer: string,
-    productType: string,
-    pdfUrl: string
-  ): Promise<PdfTemplate> => {
-    // Replace with your actual data creation logic
-    // This is just a placeholder
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-      id: Math.random().toString(),
-      manufacturer,
-      productType,
-      pdfUrl,
-    };
-  },
-  updateTemplate: async (
-    id: string,
-    pdfUrl: string
-  ): Promise<PdfTemplate> => {
-    // Replace with your actual data update logic
-    // This is just a placeholder
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-      id,
-      manufacturer: 'Example Manufacturer', // Replace with actual logic
-      productType: 'Example Product Type', // Replace with actual logic
-      pdfUrl,
-    };
-  },
-};
+const formSchema = z.object({
+  manufacturer: z.string().min(2, {
+    message: 'Manufacturer must be at least 2 characters.',
+  }),
+  productType: z.string().min(2, {
+    message: 'Product Type must be at least 2 characters.',
+  }),
+});
 
 export default function PdfTemplatesPage() {
   const { user, isLoaded } = useUser();
   const [templates, setTemplates] = useState<PdfTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTemplate, setSelectedTemplate] = useState<
-    PdfTemplate | null
-  >(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   useEffect(() => {
     // Fetch templates when user is loaded
@@ -84,7 +81,7 @@ export default function PdfTemplatesPage() {
 
     setIsLoading(true);
     try {
-      const data = await pdfTemplateService.getTemplates();
+      const data = await pdfTemplateService.getTemplates(user.id);
       setTemplates(data);
     } catch (error) {
       console.error('Error fetching PDF templates:', error);
@@ -102,17 +99,37 @@ export default function PdfTemplatesPage() {
     if (!user) return;
 
     try {
+      if (!newPdfUrl) {
+        // Handle the case where the PDF URL is being removed
+        const templateToDelete = templates.find(
+          (t) =>
+            t.manufacturer === manufacturer && t.productType === productType
+        );
+        if (templateToDelete) {
+          await pdfTemplateService.updateTemplate(templateToDelete.id, null); // Set pdfUrl to null
+          setTemplates((prev) =>
+            prev.map((t) =>
+              t.id === templateToDelete.id ? { ...t, pdfUrl: null } : t
+            )
+          );
+          toast.success('PDF Template removed successfully');
+        } else {
+          toast.error('Template not found');
+        }
+        return;
+      }
       // Check if a template already exists for this manufacturer and product type
-      const existingTemplate = templates.find(
-        (t) =>
-          t.manufacturer === manufacturer && t.productType === productType
+      let existingTemplate = await pdfTemplateService.getTemplateByManufacturerAndType(
+        manufacturer,
+        productType,
+        user.id
       );
 
       if (existingTemplate) {
         // Update the existing template
         const updatedTemplate = await pdfTemplateService.updateTemplate(
           existingTemplate.id,
-          newPdfUrl || ''
+          newPdfUrl || null
         );
         setTemplates((prev) =>
           prev.map((t) => (t.id === updatedTemplate.id ? updatedTemplate : t))
@@ -127,24 +144,33 @@ export default function PdfTemplatesPage() {
         const newTemplate = await pdfTemplateService.createTemplate(
           manufacturer,
           productType,
-          newPdfUrl
+          newPdfUrl,
+          user.id
         );
         setTemplates((prev) => [...prev, newTemplate]);
         toast.success('PDF Template added successfully');
       }
+      fetchTemplates();
     } catch (error) {
       console.error('Error saving PDF template:', error);
       toast.error('An error occurred while saving the PDF template');
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      manufacturer: '',
+      productType: '',
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsAddDialogOpen(false);
+    toast.success(
+      `Template configuration for ${values.manufacturer} / ${values.productType}`
     );
-  }
+  };
 
   return (
     <div className="p-6">
@@ -182,10 +208,61 @@ export default function PdfTemplatesPage() {
         {/* Add New PDF Template - Static Card with Button */}
         <Card className="border-dashed border-2 border-gray-300 hover:border-primary transition-colors">
           <CardContent className="flex items-center justify-center p-6">
-            <Button variant="ghost" onClick={() => {}}>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add New Template
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost">
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add New Template
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Template</DialogTitle>
+                  <DialogDescription>
+                    Configure the manufacturer and product type to attach a new
+                    template.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="manufacturer"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Manufacturer</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Acme Corp" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            What is the manufacturer name ?
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="productType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Product Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Valve" {...field} />
+                          </FormControl>
+                          <FormDescription>What is the product type ?</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit">Submit</Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

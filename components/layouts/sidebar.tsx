@@ -7,7 +7,8 @@ import {
   Home,
   Factory, 
   Briefcase, 
-  Building2, 
+  Building2,
+  Paperclip,
   Package, 
   LineChart, 
   Settings, 
@@ -41,6 +42,11 @@ const Sidebar = ({ className }: SidebarProps) => {
       name: 'Companies',
       href: '/companies',
       icon: <Building2 className="w-5 h-5" />,
+    },
+    {
+      name: 'PDF Templates',
+      href: '/pdf-templates',
+      icon: <Paperclip className="w-5 h-5" />,
     },
     {
       name: 'Manufacturers',
