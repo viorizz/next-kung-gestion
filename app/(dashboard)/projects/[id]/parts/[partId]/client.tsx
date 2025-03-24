@@ -13,9 +13,12 @@ import { Project } from '@/types/project';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
-export default function ProjectPartDetailPage({ params }: { params: { id: string; partId: string } }) {
-  const projectId = params.id;
-  const partId = params.partId;
+interface ProjectPartDetailPageClientProps {
+  projectId: string;
+  partId: string;
+}
+
+export function ProjectPartDetailPageClient({ projectId, partId }: ProjectPartDetailPageClientProps) {
   const { user, isLoaded } = useUser();
   const [projectPart, setProjectPart] = useState<ProjectPart | null>(null);
   const [project, setProject] = useState<Project | null>(null);
