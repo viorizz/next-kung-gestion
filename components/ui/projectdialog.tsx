@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Project, ProjectFormData } from '@/types/project';
-import { CompanyCombobox } from '@/components/ui/company-combobox';
+// Import our new CompanySelector component instead of CompanyCombobox
+import { CompanySelector } from '@/components/ui/company-selector';
 
 // Field configuration for focusing
 const fieldOrder = [
@@ -230,11 +231,11 @@ export function ProjectDialog({
             </div>
           </div>
           
-          {/* 2x2 grid for company fields with comboboxes */}
+          {/* 2x2 grid for company fields with the new CompanySelector */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="masonryCompany">Masonry Company</Label>
-              <CompanyCombobox
+              <CompanySelector
                 value={formData.masonryCompany}
                 onChange={(value) => handleCompanyChange('masonryCompany', value)}
                 placeholder="Select company"
@@ -244,7 +245,7 @@ export function ProjectDialog({
             
             <div className="space-y-2">
               <Label htmlFor="architect">Architect</Label>
-              <CompanyCombobox
+              <CompanySelector
                 value={formData.architect}
                 onChange={(value) => handleCompanyChange('architect', value)}
                 placeholder="Select architect"
@@ -256,7 +257,7 @@ export function ProjectDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="engineer">Engineer</Label>
-              <CompanyCombobox
+              <CompanySelector
                 value={formData.engineer}
                 onChange={(value) => handleCompanyChange('engineer', value)}
                 placeholder="Select engineer"
@@ -266,7 +267,7 @@ export function ProjectDialog({
             
             <div className="space-y-2">
               <Label htmlFor="owner">Owner</Label>
-              <CompanyCombobox
+              <CompanySelector
                 value={formData.owner}
                 onChange={(value) => handleCompanyChange('owner', value)}
                 placeholder="Select owner"
