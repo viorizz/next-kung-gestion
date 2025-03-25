@@ -203,3 +203,5 @@ export default function ProjectPartsPage({ params }: { params: { id: string } })
     </div>
   );
 }
+
+export { ProjectPartsPage as ProjectPartsPageClient };
