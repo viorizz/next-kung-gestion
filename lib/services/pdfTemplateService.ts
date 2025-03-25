@@ -1,88 +1,132 @@
 // lib/services/pdfTemplateService.ts
+import { PdfTemplate, PdfTemplateFormData } from '@/types/pdfTemplate';
 
-import { PrismaClient } from '@prisma/client';
+// Helper function to convert database types to frontend types
+const mapDbPdfTemplateToTemplate = (dbTemplate: any): PdfTemplate => ({
+  id: dbTemplate.id,
+  manufacturer: dbTemplate.manufacturer,
+  productType: dbTemplate.product_type,
+  pdfUrl: dbTemplate.pdf_url,
+  userId: dbTemplate.user_id,
+  createdAt: dbTemplate.created_at,
+  updatedAt: dbTemplate.updated_at
+});
 
-const prisma = new PrismaClient();
-
-const pdfTemplateService = {
-  getTemplates: async (userId: string) => {
+// PDF Template service
+export const pdfTemplateService = {
+  // Get all templates for a user
+  async getTemplates(userId: string): Promise<PdfTemplate[]> {
     try {
-      const templates = await prisma.pdfTemplate.findMany({
-        where: {
-          userId: userId,
-        },
-        orderBy: {
-          createdAt: 'desc', // Or any other ordering you prefer
-        },
+      const response = await fetch('/api/pdf-templates', {
+        method: 'GET'
       });
-      return templates;
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch templates: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.map(mapDbPdfTemplateToTemplate);
     } catch (error) {
-      console.error('Error fetching PDF templates:', error);
+      console.error('Error in getTemplates:', error);
       throw error;
     }
   },
 
-  createTemplate: async (
-    manufacturer: string,
-    productType: string,
-    pdfUrl: string,
-    userId: string
-  ) => {
+  // Get template by manufacturer and product type
+  async getTemplateByManufacturerAndType(manufacturer: string, productType: string, userId: string): Promise<PdfTemplate | null> {
     try {
-      const newTemplate = await prisma.pdfTemplate.create({
-        data: {
+      const response = await fetch(`/api/pdf-templates?manufacturer=${encodeURIComponent(manufacturer)}&productType=${encodeURIComponent(productType)}`, {
+        method: 'GET'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch template: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.length === 0) {
+        return null;
+      }
+      
+      return mapDbPdfTemplateToTemplate(data[0]);
+    } catch (error) {
+      console.error('Error in getTemplateByManufacturerAndType:', error);
+      throw error;
+    }
+  },
+
+  // Create a new template
+  async createTemplate(manufacturer: string, productType: string, pdfUrl: string, userId: string): Promise<PdfTemplate> {
+    try {
+      const response = await fetch('/api/pdf-templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           manufacturer,
           productType,
-          pdfUrl,
-          userId,
-        },
+          pdfUrl
+        }),
       });
-      return newTemplate;
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create template: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return mapDbPdfTemplateToTemplate(data);
     } catch (error) {
-      console.error('Error creating PDF template:', error);
+      console.error('Error in createTemplate:', error);
       throw error;
     }
   },
 
-  updateTemplate: async (id: string, pdfUrl: string | null) => {
+  // Update a template
+  async updateTemplate(templateId: string, pdfUrl: string | null): Promise<PdfTemplate> {
     try {
-      const updatedTemplate = await prisma.pdfTemplate.update({
-        where: {
-          id: id,
+      const response = await fetch('/api/pdf-templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        data: {
-          pdfUrl: pdfUrl,
-        },
+        body: JSON.stringify({
+          id: templateId,
+          pdfUrl
+        }),
       });
-      return updatedTemplate;
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update template: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return mapDbPdfTemplateToTemplate(data);
     } catch (error) {
-      console.error('Error updating PDF template:', error);
+      console.error('Error in updateTemplate:', error);
       throw error;
     }
   },
 
-  getTemplateByManufacturerAndType: async (
-    manufacturer: string,
-    productType: string,
-    userId: string
-  ) => {
+  // Delete a template
+  async deleteTemplate(templateId: string): Promise<boolean> {
     try {
-      const template = await prisma.pdfTemplate.findFirst({
-        where: {
-          manufacturer: manufacturer,
-          productType: productType,
-          userId: userId,
-        },
+      const response = await fetch(`/api/pdf-templates/${templateId}`, {
+        method: 'DELETE'
       });
-      return template; // This can be null if no template is found
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete template: ${response.statusText}`);
+      }
+      
+      return true;
     } catch (error) {
-      console.error(
-        'Error fetching PDF template by manufacturer and type:',
-        error
-      );
+      console.error('Error in deleteTemplate:', error);
       throw error;
     }
-  },
+  }
 };
 
 export default pdfTemplateService;

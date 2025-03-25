@@ -33,12 +33,13 @@ import { Item } from '@/types/item';
 import { OrderListDialog } from '@/components/ui/orderlistdialog';
 import { ItemDialog } from '@/components/ui/itemdialog';
 import { ItemTable } from '@/components/ui/itemtable';
-import { PDFViewer } from '@/components/ui/pdfviewer'; // Import PDFViewer
+import { PDFViewer } from '@/components/ui/pdfviewer';
 import { getFormMapping, applyFormMapping } from '@/lib/pdf/formMapping';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
+import pdfTemplateService from '@/lib/services/pdfTemplateService';
 
 interface OrderListDetailClientProps {
   projectId: string;
@@ -62,10 +63,11 @@ export function OrderListDetailClient({
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [activeTab, setActiveTab] = useState('items');
   const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [formMapping, setFormMapping] = useState<
-    Record<string, { source: string; field: string }>
-  >({});
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null); // Add state for the PDF URL
+  // For the form mapping state:
+  const [formMapping, setFormMapping] = useState<Record<string, { source: string; field: string }>>({});
+
+  // For the PDF URL state:
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch order list and items when user is loaded
@@ -102,14 +104,16 @@ export function OrderListDetailClient({
       );
       setFormMapping(mapping);
 
-      // Determine the PDF URL based on manufacturer and product type
-      // Replace this with your actual logic to retrieve the PDF URL
-      const pdfURL = await getPdfUrl(
+      // Get PDF URL from template service
+      const template = await pdfTemplateService.getTemplateByManufacturerAndType(
         orderListData.manufacturer,
-        orderListData.type
-      ); // Implement this function
+        orderListData.type,
+        user.id
+      );
+      
+      const pdfURL = template?.pdfUrl || null;
       setPdfUrl(pdfURL);
-
+      
       // Initialize PDF viewer if URL exists
       setShowPdfViewer(!!pdfURL);
     } catch (error) {
@@ -118,19 +122,6 @@ export function OrderListDetailClient({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // This is a placeholder - replace with your actual logic to get the PDF URL
-  const getPdfUrl = async (
-    manufacturer: string,
-    type: string
-  ): Promise<string | null> => {
-    // Example: You might have a service that retrieves the URL from a database
-    // based on the manufacturer and type.
-    // Replace this with your actual implementation.
-    // For now, I'm returning a hardcoded URL.
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate an async call
-    return 'https://raw.githubusercontent.com/mozilla/pdf.js/ba2ede91baea5653470c190cae77ca5494c56bca/web/compressed.tracemonkey.pdf';
   };
 
   const handleUpdateOrderList = async (
@@ -498,6 +489,11 @@ export function OrderListDetailClient({
                   No PDF form template is available for this
                   manufacturer/product type combination.
                 </p>
+                <Link href="/pdf-templates">
+                  <Button variant="outline">
+                    Manage PDF Templates
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           )}

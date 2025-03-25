@@ -1,5 +1,4 @@
 // app/(dashboard)/pdf-templates/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,49 +9,26 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
-import { PDFManager } from '@/components/ui/pdf-manager'; // Assuming this is where you put PDFManager
+import { PDFManager } from '@/components/ui/pdf-manager'; 
+import { PlusIcon, Loader2 } from 'lucide-react';
 import {
-  PlusIcon,
-  Loader2
-} from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogClose
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import Link from 'next/link';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import { PdfTemplate } from '@/types/pdfTemplate';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
-
-// Define a type or interface for your PDF template data
-interface PdfTemplate {
-  id: string;
-  manufacturer: string;
-  productType: string;
-  pdfUrl: string | null;
-  // Add other relevant fields, like createdBy, createdAt, etc.
-  userId: string;
-}
 
 const formSchema = z.object({
   manufacturer: z.string().min(2, {
@@ -118,6 +94,7 @@ export default function PdfTemplatesPage() {
         }
         return;
       }
+      
       // Check if a template already exists for this manufacturer and product type
       let existingTemplate = await pdfTemplateService.getTemplateByManufacturerAndType(
         manufacturer,
@@ -238,7 +215,7 @@ export default function PdfTemplatesPage() {
                             <Input placeholder="Acme Corp" {...field} />
                           </FormControl>
                           <FormDescription>
-                            What is the manufacturer name ?
+                            What is the manufacturer name?
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -253,7 +230,7 @@ export default function PdfTemplatesPage() {
                           <FormControl>
                             <Input placeholder="Valve" {...field} />
                           </FormControl>
-                          <FormDescription>What is the product type ?</FormDescription>
+                          <FormDescription>What is the product type?</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

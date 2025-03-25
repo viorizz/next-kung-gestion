@@ -1,3 +1,4 @@
+// components/ui/pdf-uploader.tsx
 import { useState, useCallback } from "react";
 import { useUploadThing } from "@/lib/uploadthing";
 import { Button } from "@/components/ui/button";

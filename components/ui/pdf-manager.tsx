@@ -1,3 +1,4 @@
+// components/ui/pdf-manager.tsx
 import { useState } from "react";
 import { PDFUploader } from "@/components/ui/pdf-uploader";
 import { Button } from "@/components/ui/button";
