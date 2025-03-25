@@ -1,3 +1,4 @@
+// app/(dashboard)/pdf-templates/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,8 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PDFManager } from '@/components/ui/pdf-manager'; 
-import { PlusIcon, Loader2 } from 'lucide-react';
+import { PDFUploader } from '@/components/ui/pdf-uploader';
+import { PlusIcon, Loader2, FileText, Trash2, Download } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,6 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { PdfTemplate } from '@/types/pdfTemplate';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
-import { PDFUploader } from '@/components/ui/pdf-uploader';
 
 const formSchema = z.object({
   manufacturer: z.string().min(2, {
@@ -82,70 +82,20 @@ export default function PdfTemplatesPage() {
     setUploadedPdfName(name);
   };
 
-  const handlePdfChange = async (
-    manufacturer: string,
-    productType: string,
-    newPdfUrl: string | null
-  ) => {
+  const handleRemoveTemplate = async (templateId: string) => {
     if (!user) return;
 
-    try {
-      if (!newPdfUrl) {
-        // Handle the case where the PDF URL is being removed
-        const templateToDelete = templates.find(
-          (t) =>
-            t.manufacturer === manufacturer && t.productType === productType
-        );
-        if (templateToDelete) {
-          await pdfTemplateService.updateTemplate(templateToDelete.id, null); // Set pdfUrl to null
-          setTemplates((prev) =>
-            prev.map((t) =>
-              t.id === templateToDelete.id ? { ...t, pdfUrl: null } : t
-            )
-          );
-          toast.success('PDF Template removed successfully');
-        } else {
-          toast.error('Template not found');
-        }
-        return;
-      }
-      
-      // Check if a template already exists for this manufacturer and product type
-      let existingTemplate = await pdfTemplateService.getTemplateByManufacturerAndType(
-        manufacturer,
-        productType,
-        user.id
-      );
+    if (!confirm('Are you sure you want to remove this template?')) {
+      return;
+    }
 
-      if (existingTemplate) {
-        // Update the existing template
-        const updatedTemplate = await pdfTemplateService.updateTemplate(
-          existingTemplate.id,
-          newPdfUrl || null
-        );
-        setTemplates((prev) =>
-          prev.map((t) => (t.id === updatedTemplate.id ? updatedTemplate : t))
-        );
-        toast.success('PDF Template updated successfully');
-      } else {
-        // Create a new template
-        if (!newPdfUrl) {
-          toast.error('No PDF URL to save');
-          return;
-        }
-        const newTemplate = await pdfTemplateService.createTemplate(
-          manufacturer,
-          productType,
-          newPdfUrl,
-          user.id
-        );
-        setTemplates((prev) => [...prev, newTemplate]);
-        toast.success('PDF Template added successfully');
-      }
-      fetchTemplates();
+    try {
+      await pdfTemplateService.deleteTemplate(templateId);
+      toast.success('Template removed successfully');
+      fetchTemplates(); // Refresh the list
     } catch (error) {
-      console.error('Error saving PDF template:', error);
-      toast.error('An error occurred while saving the PDF template');
+      console.error('Error removing template:', error);
+      toast.error('An error occurred while removing the template');
     }
   };
 
@@ -198,100 +148,174 @@ export default function PdfTemplatesPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">PDF Templates</h1>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          Add New Template
+        </Button>
       </div>
 
       {/* PDF Template List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates.map((template) => (
-          <PDFManager
-            key={template.id}
-            manufacturer={template.manufacturer}
-            productType={template.productType}
-            initialPdfUrl={template.pdfUrl || undefined}
-            onPdfChange={(url) =>
-              handlePdfChange(template.manufacturer, template.productType, url)
-            }
-          />
-        ))}
-
-        {/* Add New PDF Template - Static Card with Button */}
-        <Card className="border-dashed border-2 border-gray-300 hover:border-primary transition-colors">
-          <CardContent className="flex items-center justify-center p-6">
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost">
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Add New Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Template</DialogTitle>
-                  <DialogDescription>
-                    Configure the manufacturer and product type to attach a new
-                    template.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="manufacturer"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Manufacturer</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Acme Corp" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            What is the manufacturer name?
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="productType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Product Type</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Valve" {...field} />
-                          </FormControl>
-                          <FormDescription>What is the product type?</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Add PDF Upload component */}
-                    <FormItem>
-                      <FormLabel>PDF Template</FormLabel>
-                      <PDFUploader onUploadComplete={handleUploadComplete} />
-                      {uploadedPdfUrl && (
-                        <p className="text-sm text-green-600 mt-2">
-                          ✓ {uploadedPdfName || 'PDF'} uploaded successfully
-                        </p>
-                      )}
-                      <FormDescription>
-                        Upload a PDF form template with fillable fields
-                      </FormDescription>
-                    </FormItem>
-                    
-                    <Button type="submit" disabled={!uploadedPdfUrl}>
-                      Create Template
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : templates.length === 0 ? (
+        <div className="text-center py-12 border rounded-lg bg-card">
+          <p className="text-muted-foreground">
+            No PDF templates found. Click the button above to add your first template.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {templates.map((template) => (
+            <Card key={template.id} className="bg-card hover:bg-accent/10 transition-colors">
+              <CardHeader className="flex flex-row items-start justify-between pb-2">
+                <div>
+                  <CardTitle className="text-xl">
+                    {template.manufacturer} - {template.productType}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Added: {new Date(template.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-6 w-6 text-blue-500" />
+                    <span className="text-sm">
+                      {template.pdfUrl ? 
+                        new URL(template.pdfUrl).pathname.split('/').pop() :
+                        'No PDF uploaded'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    {template.pdfUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(template.pdfUrl as string, "_blank")}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    )}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Update PDF
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Update PDF Template</DialogTitle>
+                          <DialogDescription>
+                            Upload a new PDF for {template.manufacturer} - {template.productType}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <PDFUploader 
+                          onUploadComplete={(url, name) => {
+                            pdfTemplateService.updateTemplate(template.id, url)
+                              .then(() => {
+                                toast.success('Template updated successfully');
+                                fetchTemplates();
+                              })
+                              .catch(err => {
+                                console.error('Update failed:', err);
+                                toast.error('Failed to update template');
+                              });
+                          }}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleRemoveTemplate(template.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remove
                     </Button>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
-      </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Add New Template Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Template</DialogTitle>
+            <DialogDescription>
+              Configure the manufacturer and product type to attach a new
+              template.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="manufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Manufacturer</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Acme Corp" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      What is the manufacturer name?
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="productType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Type</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Valve" {...field} />
+                    </FormControl>
+                    <FormDescription>What is the product type?</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Add PDF Upload component */}
+              <FormItem>
+                <FormLabel>PDF Template</FormLabel>
+                <PDFUploader onUploadComplete={handleUploadComplete} />
+                {uploadedPdfUrl && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {uploadedPdfName || 'PDF'} uploaded successfully
+                  </p>
+                )}
+                <FormDescription>
+                  Upload a PDF form template with fillable fields
+                </FormDescription>
+              </FormItem>
+              
+              <Button type="submit" disabled={!uploadedPdfUrl}>
+                Create Template
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
