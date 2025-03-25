@@ -1,4 +1,3 @@
-// app/(dashboard)/pdf-templates/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,8 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PDFManager } from '@/components/ui/pdf-manager';
-import { PDFUploader } from '@/components/ui/pdf-uploader'; 
+import { PDFManager } from '@/components/ui/pdf-manager'; 
 import { PlusIcon, Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -30,10 +28,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { PdfTemplate } from '@/types/pdfTemplate';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
-
-// Add state for the uploaded PDF URL
-const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
-const [uploadedPdfName, setUploadedPdfName] = useState<string | null>(null);
+import { PDFUploader } from '@/components/ui/pdf-uploader';
 
 const formSchema = z.object({
   manufacturer: z.string().min(2, {
@@ -49,6 +44,16 @@ export default function PdfTemplatesPage() {
   const [templates, setTemplates] = useState<PdfTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
+  const [uploadedPdfName, setUploadedPdfName] = useState<string | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      manufacturer: '',
+      productType: '',
+    },
+  });
 
   useEffect(() => {
     // Fetch templates when user is loaded
@@ -72,11 +77,10 @@ export default function PdfTemplatesPage() {
     }
   };
 
-  // Handler for when upload is complete
-const handleUploadComplete = (url: string, name: string) => {
-  setUploadedPdfUrl(url);
-  setUploadedPdfName(name);
-};
+  const handleUploadComplete = (url: string, name: string) => {
+    setUploadedPdfUrl(url);
+    setUploadedPdfName(name);
+  };
 
   const handlePdfChange = async (
     manufacturer: string,
@@ -145,14 +149,6 @@ const handleUploadComplete = (url: string, name: string) => {
     }
   };
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      manufacturer: '',
-      productType: '',
-    },
-  });
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!uploadedPdfUrl) {
       toast.error('Please upload a PDF template first');
@@ -160,11 +156,13 @@ const handleUploadComplete = (url: string, name: string) => {
     }
     
     try {
+      if (!user) return;
+      
       await pdfTemplateService.createTemplate(
         values.manufacturer,
         values.productType,
         uploadedPdfUrl,
-        user!.id
+        user.id
       );
       
       setIsAddDialogOpen(false);
@@ -172,6 +170,11 @@ const handleUploadComplete = (url: string, name: string) => {
         `Template created for ${values.manufacturer} / ${values.productType}`
       );
       fetchTemplates(); // Refresh the list
+      
+      // Reset form and uploaded PDF
+      form.reset();
+      setUploadedPdfUrl(null);
+      setUploadedPdfName(null);
     } catch (error) {
       console.error('Error creating template:', error);
       toast.error('Failed to create template');
@@ -214,63 +217,78 @@ const handleUploadComplete = (url: string, name: string) => {
         {/* Add New PDF Template - Static Card with Button */}
         <Card className="border-dashed border-2 border-gray-300 hover:border-primary transition-colors">
           <CardContent className="flex items-center justify-center p-6">
-          // Modify the dialog content in the PDF Templates page
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Template</DialogTitle>
-                <DialogDescription>
-                  Configure the manufacturer and product type to attach a new template.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="manufacturer"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Manufacturer</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Acme Corp" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          What is the manufacturer name?
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="productType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Product Type</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Valve" {...field} />
-                        </FormControl>
-                        <FormDescription>What is the product type?</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Add PDF Upload component here */}
-                  <FormItem>
-                    <FormLabel>PDF Template</FormLabel>
-                    <PDFUploader onUploadComplete={handleUploadComplete} />
-                    <FormDescription>
-                      Upload a PDF form template with fillable fields
-                    </FormDescription>
-                  </FormItem>
-                  
-                  <Button type="submit">Submit</Button>
-                </form>
-              </Form>
-            </DialogContent>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost">
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add New Template
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Template</DialogTitle>
+                  <DialogDescription>
+                    Configure the manufacturer and product type to attach a new
+                    template.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="manufacturer"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Manufacturer</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Acme Corp" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            What is the manufacturer name?
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="productType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Product Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Valve" {...field} />
+                          </FormControl>
+                          <FormDescription>What is the product type?</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {/* Add PDF Upload component */}
+                    <FormItem>
+                      <FormLabel>PDF Template</FormLabel>
+                      <PDFUploader onUploadComplete={handleUploadComplete} />
+                      {uploadedPdfUrl && (
+                        <p className="text-sm text-green-600 mt-2">
+                          ✓ {uploadedPdfName || 'PDF'} uploaded successfully
+                        </p>
+                      )}
+                      <FormDescription>
+                        Upload a PDF form template with fillable fields
+                      </FormDescription>
+                    </FormItem>
+                    
+                    <Button type="submit" disabled={!uploadedPdfUrl}>
+                      Create Template
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>
