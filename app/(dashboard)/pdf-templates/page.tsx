@@ -10,7 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PDFManager } from '@/components/ui/pdf-manager'; 
+import { PDFManager } from '@/components/ui/pdf-manager';
+import { PDFUploader } from '@/components/ui/pdf-uploader'; 
 import { PlusIcon, Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -29,6 +30,10 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { PdfTemplate } from '@/types/pdfTemplate';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
+
+// Add state for the uploaded PDF URL
+const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
+const [uploadedPdfName, setUploadedPdfName] = useState<string | null>(null);
 
 const formSchema = z.object({
   manufacturer: z.string().min(2, {
@@ -66,6 +71,12 @@ export default function PdfTemplatesPage() {
       setIsLoading(false);
     }
   };
+
+  // Handler for when upload is complete
+const handleUploadComplete = (url: string, name: string) => {
+  setUploadedPdfUrl(url);
+  setUploadedPdfName(name);
+};
 
   const handlePdfChange = async (
     manufacturer: string,
@@ -143,10 +154,28 @@ export default function PdfTemplatesPage() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsAddDialogOpen(false);
-    toast.success(
-      `Template configuration for ${values.manufacturer} / ${values.productType}`
-    );
+    if (!uploadedPdfUrl) {
+      toast.error('Please upload a PDF template first');
+      return;
+    }
+    
+    try {
+      await pdfTemplateService.createTemplate(
+        values.manufacturer,
+        values.productType,
+        uploadedPdfUrl,
+        user!.id
+      );
+      
+      setIsAddDialogOpen(false);
+      toast.success(
+        `Template created for ${values.manufacturer} / ${values.productType}`
+      );
+      fetchTemplates(); // Refresh the list
+    } catch (error) {
+      console.error('Error creating template:', error);
+      toast.error('Failed to create template');
+    }
   };
 
   return (
@@ -185,61 +214,63 @@ export default function PdfTemplatesPage() {
         {/* Add New PDF Template - Static Card with Button */}
         <Card className="border-dashed border-2 border-gray-300 hover:border-primary transition-colors">
           <CardContent className="flex items-center justify-center p-6">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost">
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Add New Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Template</DialogTitle>
-                  <DialogDescription>
-                    Configure the manufacturer and product type to attach a new
-                    template.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name="manufacturer"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Manufacturer</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Acme Corp" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            What is the manufacturer name?
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="productType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Product Type</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Valve" {...field} />
-                          </FormControl>
-                          <FormDescription>What is the product type?</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit">Submit</Button>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
+          // Modify the dialog content in the PDF Templates page
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Template</DialogTitle>
+                <DialogDescription>
+                  Configure the manufacturer and product type to attach a new template.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="manufacturer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Manufacturer</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Acme Corp" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          What is the manufacturer name?
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="productType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product Type</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Valve" {...field} />
+                        </FormControl>
+                        <FormDescription>What is the product type?</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Add PDF Upload component here */}
+                  <FormItem>
+                    <FormLabel>PDF Template</FormLabel>
+                    <PDFUploader onUploadComplete={handleUploadComplete} />
+                    <FormDescription>
+                      Upload a PDF form template with fillable fields
+                    </FormDescription>
+                  </FormItem>
+                  
+                  <Button type="submit">Submit</Button>
+                </form>
+              </Form>
+            </DialogContent>
           </CardContent>
         </Card>
       </div>
