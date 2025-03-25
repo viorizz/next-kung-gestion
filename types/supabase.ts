@@ -245,6 +245,37 @@ export interface Database {
         }
         Relationships: [] // Updated to remove the foreign key relationship that no longer exists
       }
+      // Add this new table definition
+      pdf_templates: {
+        Row: {
+          id: string
+          manufacturer: string
+          product_type: string
+          pdf_url: string | null
+          user_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          manufacturer: string
+          product_type: string
+          pdf_url?: string | null
+          user_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          manufacturer?: string
+          product_type?: string
+          pdf_url?: string | null
+          user_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       list_templates: {
         Row: {
           id: string
