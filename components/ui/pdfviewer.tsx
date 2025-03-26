@@ -1,9 +1,7 @@
 // components/ui/pdfviewer.tsx
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'; // Added useMemo
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { toast } from 'sonner';
 import {
   Loader2,
   FileText,
@@ -11,16 +9,15 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { PDFDocument, PDFTextField } from 'pdf-lib'; // Import PDFTextField
+import { PDFDocument, PDFTextField } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/pdf';
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 // Set worker path ONLY in the browser
 if (typeof window !== 'undefined') {
-  // Use the EXACT filename you copied, including .mjs
   pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
-  // Alternative CDN:
-  // pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 }
 
 interface PDFViewerProps {
@@ -61,7 +58,7 @@ export function PDFViewer({
 
   // Memoize formData calculation
   const formData = useMemo(() => {
-    // --- CONSOLE LOG: Log inputs for formData calculation ---
+    // ... (formData calculation logic with console logs - unchanged) ...
     console.log('[PDFViewer useMemo] Calculating formData. Inputs:', {
       formDataMapping,
       projectData,
@@ -80,29 +77,27 @@ export function PDFViewer({
     Object.entries(formDataMapping).forEach(([pdfField, mapping]) => {
       let value: any = '';
       try {
-        // --- CONSOLE LOG: Log each mapping entry ---
         console.log(
           `[PDFViewer useMemo] Processing mapping for PDF Field: "${pdfField}"`,
           mapping
         );
 
         switch (mapping.source) {
-          // Ensure these cases match your JSON 'source' values ('project' vs 'projects', etc.)
-          case 'project': // Assuming singular based on prop name
+          case 'project':
             value = projectData?.[mapping.field];
             console.log(
               `  -> Source 'project', Field '${mapping.field}', Value:`,
               value
             );
             break;
-          case 'part': // Assuming singular based on prop name
+          case 'part':
             value = partData?.[mapping.field];
             console.log(
               `  -> Source 'part', Field '${mapping.field}', Value:`,
               value
             );
             break;
-          case 'orderList': // Assuming singular based on prop name
+          case 'orderList':
             value = orderListData?.[mapping.field];
             console.log(
               `  -> Source 'orderList', Field '${mapping.field}', Value:`,
@@ -124,7 +119,6 @@ export function PDFViewer({
             );
             break;
         }
-        // Convert value to string, handle null/undefined
         mappedData[pdfField] =
           value !== null && value !== undefined ? String(value) : '';
       } catch (e) {
@@ -133,16 +127,16 @@ export function PDFViewer({
           mapping,
           e
         );
-        mappedData[pdfField] = ''; // Default to empty string on error
+        mappedData[pdfField] = '';
       }
     });
-    // --- CONSOLE LOG: Log the final calculated formData object ---
     console.log('[PDFViewer useMemo] Calculated formData:', mappedData);
     return mappedData;
-  }, [projectData, partData, orderListData, formDataMapping]); // Dependencies for useMemo
+  }, [projectData, partData, orderListData, formDataMapping]);
 
   // --- PDF Loading Effect ---
   useEffect(() => {
+    // ... (loadPDF logic with console logs - unchanged) ...
     let isMounted = true;
     const loadPDF = async () => {
       console.log('[PDFViewer useEffect loadPDF] Attempting to load:', pdfUrl);
@@ -199,7 +193,7 @@ export function PDFViewer({
           console.log(
             '[PDFViewer useEffect loadPDF] Component unmounted before setting state'
           );
-          pdfDocument.destroy(); // Clean up if unmounted
+          pdfDocument.destroy();
         }
       } catch (err: any) {
         console.error('[PDFViewer useEffect loadPDF] Detailed error:', err);
@@ -211,7 +205,6 @@ export function PDFViewer({
           } else if (err.message?.includes('Invalid PDF')) {
             setError('Failed to load PDF: Invalid or corrupted file.');
           } else if (err.message?.includes('worker')) {
-            // Specific error for worker issues
             setError(
               `Failed to load PDF worker: ${err.message}. Ensure '/pdf.worker.min.mjs' is in the public folder and accessible.`
             );
@@ -235,10 +228,10 @@ export function PDFViewer({
     return () => {
       console.log('[PDFViewer useEffect loadPDF] Cleanup: Unmounting');
       isMounted = false;
-      pdfJsDoc?.destroy(); // Cleanup PDF.js document
+      pdfJsDoc?.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfUrl]); // Re-run only when pdfUrl changes
+  }, [pdfUrl]);
 
   // --- PDF Rendering Effect ---
   const renderPage = useCallback(
@@ -246,14 +239,29 @@ export function PDFViewer({
       console.log(
         `[PDFViewer renderPage] Attempting to render page ${pageNum}`
       );
-      if (!pdfDoc || !canvasRef.current) {
+
+      // ***** FIX: Check if canvasRef.current exists *****
+      if (!canvasRef.current) {
         console.warn(
-          `[PDFViewer renderPage] Aborted: Missing pdfDoc or canvasRef`
+          `[PDFViewer renderPage] Aborted page ${pageNum}: canvasRef.current is null. Canvas may not be rendered yet.`
+        );
+        // It's okay to just return; the effect will likely run again once the canvas is mounted.
+        return;
+      }
+      // ***** END FIX *****
+
+      // Now it's safe to get the canvas
+      const canvas = canvasRef.current;
+
+      if (!pdfDoc) {
+        console.warn(
+          `[PDFViewer renderPage] Aborted page ${pageNum}: pdfDoc is null.`
         );
         return;
       }
 
-      setIsLoading(true); // Show loading indicator during render
+      // Set loading true only if we are actually going to render
+      setIsLoading(true);
       try {
         const page: PDFPageProxy = await pdfDoc.getPage(pageNum);
         console.log(
@@ -261,13 +269,14 @@ export function PDFViewer({
         );
         const viewport = page.getViewport({ scale });
 
-        const canvas = canvasRef.current;
+        // canvas is guaranteed non-null here
         const context = canvas.getContext('2d');
         if (!context) {
           console.error(
             '[PDFViewer renderPage] Could not get 2D context for canvas'
           );
           setError('Failed to render PDF: Canvas context unavailable.');
+          // Set loading false here as we are stopping the render process
           setIsLoading(false);
           return;
         }
@@ -285,16 +294,17 @@ export function PDFViewer({
         console.log(`[PDFViewer renderPage] Rendering page ${pageNum}...`);
         await page.render(renderContext).promise;
         console.log(`[PDFViewer renderPage] Page ${pageNum} rendered.`);
-        setError(null); // Clear previous render errors
+        setError(null);
       } catch (err: any) {
         console.error(`[PDFViewer renderPage] Error rendering page ${pageNum}:`, err);
         setError(`Failed to render page ${pageNum}: ${err.message}`);
       } finally {
+        // Always set loading false after attempting to render (success or fail)
         setIsLoading(false);
       }
     },
-    [scale]
-  ); // Dependency on scale
+    [scale] // Dependency: scale
+  );
 
   useEffect(() => {
     if (pdfJsDoc) {
@@ -307,10 +317,11 @@ export function PDFViewer({
         `[PDFViewer useEffect render] Skipping render: pdfJsDoc not available`
       );
     }
-  }, [pdfJsDoc, currentPage, renderPage]); // renderPage is memoized
+  }, [pdfJsDoc, currentPage, renderPage]); // Dependencies: pdfJsDoc, currentPage, renderPage
 
   // --- Export Handler ---
   const handleExport = async () => {
+    // ... (handleExport logic with console logs - unchanged) ...
     console.log('[PDFViewer handleExport] Starting export...');
     if (!pdfUrl || !pdfJsDoc) {
       console.warn('[PDFViewer handleExport] Aborted: Missing pdfUrl or pdfJsDoc');
@@ -320,7 +331,6 @@ export function PDFViewer({
     setIsExporting(true);
     setError(null);
 
-    // --- CONSOLE LOG: Log formData being used for export ---
     console.log('[PDFViewer handleExport] Using formData:', formData);
 
     try {
@@ -335,10 +345,8 @@ export function PDFViewer({
       const form = pdfDoc.getForm();
       console.log('[PDFViewer handleExport] pdf-lib form loaded.');
 
-      // Fill form fields using the memoized formData
       Object.entries(formData).forEach(([fieldName, value]) => {
         try {
-          // --- CONSOLE LOG: Log field filling attempt ---
           console.log(
             `[PDFViewer handleExport] Attempting to fill field "${fieldName}" with value: "${value}"`
           );
@@ -351,8 +359,6 @@ export function PDFViewer({
               console.warn(
                 `  -> Field "${fieldName}" found, but it's not a TextField. Type: ${field.constructor.name}. Filling not implemented for this type.`
               );
-              // Add handling for Checkbox, Dropdown etc. if needed
-              // e.g., if (field instanceof PDFCheckBox) { field.check(); }
             }
           } else {
             console.warn(`  -> Field "${fieldName}" not found in PDF form.`);
@@ -364,10 +370,6 @@ export function PDFViewer({
           );
         }
       });
-
-      // Optional: Flatten form
-      // console.log('[PDFViewer handleExport] Flattening form...');
-      // form.flatten();
 
       console.log('[PDFViewer handleExport] Saving filled PDF bytes...');
       const filledPdfBytes = await pdfDoc.save();
@@ -386,7 +388,7 @@ export function PDFViewer({
         const parts = path.split('/');
         const originalName = parts[parts.length - 1];
         if (originalName) {
-          filename = `filled-${decodeURIComponent(originalName)}`; // Decode filename
+          filename = `filled-${decodeURIComponent(originalName)}`;
         }
       } catch { /* ignore URL parsing errors */ }
 
@@ -413,9 +415,7 @@ export function PDFViewer({
   const zoomOut = () => setScale((s) => Math.max(0.5, s - 0.2));
 
   // --- Render Logic ---
-  // ... (Rest of the JSX rendering logic remains the same) ...
-  // ... (Loading indicators, error messages, canvas, toolbar) ...
-
+  // ... (JSX rendering logic - unchanged) ...
   if (!pdfUrl && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] text-center p-6 border rounded-lg bg-card">
