@@ -9,11 +9,6 @@ import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy } from 'pdfjs-dist/types/src/pdf';
 
-if (typeof window !== 'undefined') {
-  // Use the EXACT filename you copied, including .mjs
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
-}
-
 interface PDFViewerProps {
   pdfUrl: string | null; // Now accepts the direct URL from UploadThing
   projectData: any;
