@@ -58,18 +58,10 @@ export function PDFViewer({
 
   // Memoize formData calculation
   const formData = useMemo(() => {
-    // ... (formData calculation logic with console logs - unchanged) ...
-    console.log('[PDFViewer useMemo] Calculating formData. Inputs:', {
-      formDataMapping,
-      projectData,
-      partData,
-      orderListData,
-    });
+    console.log('[PDFViewer useMemo] Calculating formData. Inputs:', { /* ... */ });
 
     if (!projectData || !partData || !orderListData) {
-      console.warn(
-        '[PDFViewer useMemo] Skipping formData calculation: Missing data objects'
-      );
+      console.warn(/* ... */);
       return {};
     }
 
@@ -77,56 +69,60 @@ export function PDFViewer({
     Object.entries(formDataMapping).forEach(([pdfField, mapping]) => {
       let value: any = '';
       try {
-        console.log(
-          `[PDFViewer useMemo] Processing mapping for PDF Field: "${pdfField}"`,
-          mapping
-        );
+        console.log( /* ... */ );
 
         switch (mapping.source) {
           case 'project':
             value = projectData?.[mapping.field];
-            console.log(
-              `  -> Source 'project', Field '${mapping.field}', Value:`,
-              value
-            );
+            console.log( /* ... */ );
             break;
           case 'part':
             value = partData?.[mapping.field];
-            console.log(
-              `  -> Source 'part', Field '${mapping.field}', Value:`,
-              value
-            );
+            console.log( /* ... */ );
             break;
           case 'orderList':
             value = orderListData?.[mapping.field];
-            console.log(
-              `  -> Source 'orderList', Field '${mapping.field}', Value:`,
-              value
-            );
+            console.log( /* ... */ );
             break;
+
+          // ***** MODIFIED CUSTOM CASE *****
           case 'custom':
             if (mapping.field === 'currentDate') {
               value = new Date().toLocaleDateString();
             }
+            // --- Logic for compositePartNumber ---
+            else if (mapping.field === 'compositePartNumber') {
+              // !! Adjust property names if needed !!
+              const projNum = projectData?.projectNumber ?? '??'; // Use ?? for nullish coalescing
+              const partNum = partData?.partNumber ?? '??';
+              value = `${projNum}-${partNum}`;
+              console.log(`  -> Custom compositePartNumber: ${projNum}-${partNum}`);
+            }
+            // --- Logic for compositeOrderListNumber ---
+            else if (mapping.field === 'compositeOrderListNumber') {
+              // !! Adjust property names if needed !!
+              const projNum = projectData?.projectNumber ?? '??';
+              const partNum = partData?.partNumber ?? '??';
+              const listNum = orderListData?.listNumber ?? '??'; // Use listNumber from orderListData
+              value = `${projNum}-${partNum}.${listNum}`;
+              console.log(`  -> Custom compositeOrderListNumber: ${projNum}-${partNum}.${listNum}`);
+            }
+            // Log the final custom value
             console.log(
-              `  -> Source 'custom', Field '${mapping.field}', Value:`,
+              `  -> Source 'custom', Field '${mapping.field}', Final Value:`,
               value
             );
             break;
+          // ***** END MODIFIED CUSTOM CASE *****
+
           default:
-            console.warn(
-              `  -> Unknown mapping source: "${mapping.source}" for PDF field "${pdfField}"`
-            );
+            console.warn( /* ... */ );
             break;
         }
         mappedData[pdfField] =
           value !== null && value !== undefined ? String(value) : '';
       } catch (e) {
-        console.error(
-          `[PDFViewer useMemo] Error accessing data for PDF field "${pdfField}" with mapping`,
-          mapping,
-          e
-        );
+        console.error( /* ... */ );
         mappedData[pdfField] = '';
       }
     });
