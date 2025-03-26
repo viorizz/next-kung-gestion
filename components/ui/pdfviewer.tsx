@@ -15,14 +15,6 @@ import { PDFDocument, PDFTextField } from 'pdf-lib'; // Import PDFTextField
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/src/pdf';
 
-// Set worker path ONLY in the browser
-if (typeof window !== 'undefined') {
-  // Use the EXACT filename you copied, including .mjs
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
-  // Alternative CDN:
-  // pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-}
-
 interface PDFViewerProps {
   pdfUrl: string | null;
   projectData: any;
