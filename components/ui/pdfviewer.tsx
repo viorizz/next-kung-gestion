@@ -126,7 +126,7 @@ export function PDFViewer({
       let value = '';
 
       switch (mapping.source) {
-        case 'project':
+        case 'projects':
           value = projectData[mapping.field] || '';
           break;
         case 'part':
