@@ -321,7 +321,6 @@ export function PDFViewer({
 
   // --- Export Handler ---
   const handleExport = async () => {
-    // ... (handleExport logic with console logs - unchanged) ...
     console.log('[PDFViewer handleExport] Starting export...');
     if (!pdfUrl || !pdfJsDoc) {
       console.warn('[PDFViewer handleExport] Aborted: Missing pdfUrl or pdfJsDoc');
@@ -345,6 +344,7 @@ export function PDFViewer({
       const form = pdfDoc.getForm();
       console.log('[PDFViewer handleExport] pdf-lib form loaded.');
 
+      // Fill form fields using the memoized formData
       Object.entries(formData).forEach(([fieldName, value]) => {
         try {
           console.log(
@@ -371,8 +371,13 @@ export function PDFViewer({
         }
       });
 
-      console.log('[PDFViewer handleExport] Saving filled PDF bytes...');
-      const filledPdfBytes = await pdfDoc.save();
+      // ***** ADD THIS LINE TO FLATTEN THE FORM *****
+      console.log('[PDFViewer handleExport] Flattening form...');
+      form.flatten();
+      // **********************************************
+
+      console.log('[PDFViewer handleExport] Saving flattened PDF bytes...');
+      const filledPdfBytes = await pdfDoc.save(); // Save the modified (flattened) document
       console.log(
         '[PDFViewer handleExport] Saved bytes length:',
         filledPdfBytes.byteLength
