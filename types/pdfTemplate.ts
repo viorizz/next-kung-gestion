@@ -7,6 +7,7 @@ export type PdfTemplate = {
     userId: string;
     createdAt: string;
     updatedAt: string;
+    fieldMapping?: string | null;
   };
   
   export type PdfTemplateFormData = {

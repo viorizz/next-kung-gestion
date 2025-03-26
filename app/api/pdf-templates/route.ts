@@ -1,166 +1,125 @@
 // app/api/pdf-templates/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs';
-import { NextResponse } from 'next/server';
-import { Database } from '@/types/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+// GET /api/pdf-templates?manufacturer=...&productType=...
+export async function GET(request: NextRequest) {
+  const { userId } = auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json(
+      { error: 'Server configuration error' },
+      { status: 500 }
+    );
+  }
+
   try {
-    // Verify authentication
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
 
-    // Optional filter by manufacturer and product type
-    const { searchParams } = new URL(request.url);
+    // Get query parameters for filtering
+    const { searchParams } = request.nextUrl;
     const manufacturer = searchParams.get('manufacturer');
     const productType = searchParams.get('productType');
 
-    // Check environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Server configuration error' }, 
-        { status: 500 }
-      );
-    }
-
-    // Create Supabase client
-    const supabase = createClient<Database>(
-      supabaseUrl,
-      supabaseServiceKey,
-      { auth: { persistSession: false } }
-    );
-    
-    // Set up query
     let query = supabase
       .from('pdf_templates')
       .select('*')
-      .eq('user_id', userId);
-    
+      .eq('user_id', userId); // Filter by authenticated user
+
     // Apply filters if provided
     if (manufacturer) {
       query = query.eq('manufacturer', manufacturer);
     }
-    
     if (productType) {
+      // Assuming DB column is product_type
       query = query.eq('product_type', productType);
     }
-    
-    // Execute query
-    const { data, error } = await query.order('created_at', { ascending: false });
-      
+
+    const { data, error } = await query;
+
     if (error) {
-      return NextResponse.json(
-        { error: error.message, details: error, code: error.code }, 
-        { status: 400 }
-      );
+      console.error('Supabase GET error:', error);
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    
+
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Unhandled error in API route:', error);
+    console.error('GET Error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' }, 
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
+// POST /api/pdf-templates
+export async function POST(request: NextRequest) {
+  const { userId } = auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json(
+      { error: 'Server configuration error' },
+      { status: 500 }
+    );
+  }
+
   try {
-    // Verify authentication
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Parse the request body
     const body = await request.json();
-    const { manufacturer, productType, pdfUrl } = body;
 
-    if (!manufacturer || !productType) {
-      return NextResponse.json({ error: 'Manufacturer and product type are required' }, { status: 400 });
-    }
-
-    // Check environment variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
+    // Basic validation (add more specific validation if needed)
+    if (!body.manufacturer || !body.productType || !body.pdfUrl) {
       return NextResponse.json(
-        { error: 'Server configuration error' }, 
-        { status: 500 }
+        { error: 'Missing required fields' },
+        { status: 400 }
       );
     }
 
-    // Create Supabase client
-    const supabase = createClient<Database>(
-      supabaseUrl,
-      supabaseServiceKey,
-      { auth: { persistSession: false } }
-    );
-    
-    // Check if a template already exists for this combination
-    const { data: existingTemplate } = await supabase
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
+
+    const { data, error } = await supabase
       .from('pdf_templates')
-      .select('id')
-      .eq('manufacturer', manufacturer)
-      .eq('product_type', productType)
-      .eq('user_id', userId)
-      .single();
-      
-    if (existingTemplate) {
-      // Update existing template
-      const { data, error } = await supabase
-        .from('pdf_templates')
-        .update({ 
-          pdf_url: pdfUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingTemplate.id)
-        .select()
-        .single();
-        
-      if (error) {
-        return NextResponse.json(
-          { error: error.message }, 
-          { status: 400 }
-        );
-      }
-      
-      return NextResponse.json(data);
-    } else {
-      // Create new template
-      const { data, error } = await supabase
-        .from('pdf_templates')
-        .insert({
-          manufacturer,
-          product_type: productType,
-          pdf_url: pdfUrl,
-          user_id: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (error) {
-        return NextResponse.json(
-          { error: error.message }, 
-          { status: 400 }
-        );
-      }
-      
-      return NextResponse.json(data);
+      .insert({
+        manufacturer: body.manufacturer,
+        product_type: body.productType, // Map to snake_case
+        pdf_url: body.pdfUrl, // Map to snake_case
+        user_id: userId, // Associate with the authenticated user
+        field_mapping: body.fieldMapping || null, // Map to snake_case, default null
+      })
+      .select() // Select the newly created row
+      .single(); // Expect only one row
+
+    if (error) {
+      console.error('Supabase POST error:', error);
+      // Handle specific errors like unique constraint violations if necessary
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
-  } catch (error) {
-    console.error('Unhandled error in API route:', error);
+
+    return NextResponse.json(data, { status: 201 }); // Return created data with 201 status
+  } catch (error: any) {
+    console.error('POST Error:', error);
+    // Handle JSON parsing errors
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     return NextResponse.json(
-      { error: 'Internal Server Error' }, 
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

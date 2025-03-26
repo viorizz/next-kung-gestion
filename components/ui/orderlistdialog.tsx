@@ -70,6 +70,17 @@ export function OrderListDialog({
 }: OrderListDialogProps) {
   const isEditing = !!orderList;
   
+  // Helper function to check for valid JSON
+const isValidJson = (value: string | undefined): boolean => {
+  if (!value || value.trim() === '') return true; // Allow empty string
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
   // Create refs for each input field
   const inputRefs = {
     listNumber: useRef<HTMLInputElement>(null),
