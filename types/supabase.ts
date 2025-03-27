@@ -20,6 +20,10 @@ export interface Database {
           architect: string | null
           engineer: string | null
           owner: string | null
+          masonry_company_id: string | null
+          architect_id: string | null
+          engineer_id: string | null
+          owner_id: string | null
           designer: string
           project_manager: string
           user_id: string
@@ -35,6 +39,10 @@ export interface Database {
           architect?: string | null
           engineer?: string | null
           owner?: string | null
+          masonry_company_id?: string | null
+          architect_id?: string | null
+          engineer_id?: string | null
+          owner_id?: string | null
           designer: string
           project_manager: string
           user_id: string
@@ -50,6 +58,10 @@ export interface Database {
           architect?: string | null
           engineer?: string | null
           owner?: string | null
+          masonry_company_id?: string | null
+          architect_id?: string | null
+          engineer_id?: string | null
+          owner_id?: string | null
           designer?: string
           project_manager?: string
           user_id?: string
@@ -61,6 +73,30 @@ export interface Database {
             foreignKeyName: "projects_user_id_fkey"
             columns: ["user_id"]
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_engineer_id_fkey"
+            columns: ["engineer_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_architect_id_fkey"
+            columns: ["architect_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_masonry_company_id_fkey"
+            columns: ["masonry_company_id"]
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           }
         ]

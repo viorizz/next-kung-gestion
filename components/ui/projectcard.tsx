@@ -16,16 +16,22 @@ export function ProjectCard({ project, onEditClick }: ProjectCardProps) {
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
+
+  // Helper function to get company name from either ID-based object or legacy name field
+  const getCompanyName = (companyObj: any | undefined, companyName: string | null) => {
+    if (companyObj && companyObj.name) {
+      return companyObj.name;
+    }
+    return companyName || 'None';
+  };
   
   return (
     <Card className="bg-card hover:bg-accent/10 transition-colors">
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <div>
-          {/* Updated format to show project number-name together */}
           <CardTitle className="text-xl">
             <span className="font-bold">{project.projectNumber}</span>-{project.name}
           </CardTitle>
-          {/* Removed the separate display of Project # */}
         </div>
         <div className="flex flex-col items-end">
           <div className="text-sm px-3 py-1 rounded bg-primary/10 text-primary font-medium">
@@ -45,17 +51,23 @@ export function ProjectCard({ project, onEditClick }: ProjectCardProps) {
             <span className="text-sm text-muted-foreground">{project.address}</span>
           </div>
           
-          {project.architect && (
+          {/* Display architect from either object or name field */}
+          {(project.architectObj || project.architect) && (
             <div className="flex items-center gap-2">
               <BuildingIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Architect: {project.architect}</span>
+              <span className="text-sm text-muted-foreground">
+                Architect: {getCompanyName(project.architectObj, project.architect)}
+              </span>
             </div>
           )}
           
-          {project.engineer && (
+          {/* Display engineer from either object or name field */}
+          {(project.engineerObj || project.engineer) && (
             <div className="flex items-center gap-2">
               <UsersIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Engineer: {project.engineer}</span>
+              <span className="text-sm text-muted-foreground">
+                Engineer: {getCompanyName(project.engineerObj, project.engineer)}
+              </span>
             </div>
           )}
         </div>

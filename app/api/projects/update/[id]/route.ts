@@ -50,15 +50,22 @@ export async function POST(
       );
     }
     
-    // Update data
+    // Update data - now including the company ID fields
     const updateData = {
       project_number: body.projectNumber,
       name: body.name,
       address: body.address,
+      // Keep old string fields for backward compatibility
       masonry_company: body.masonryCompany || null,
       architect: body.architect || null,
       engineer: body.engineer || null,
       owner: body.owner || null,
+      // Add new UUID reference fields
+      masonry_company_id: body.masonryCompanyId || null,
+      architect_id: body.architectId || null,
+      engineer_id: body.engineerId || null,
+      owner_id: body.ownerId || null,
+      // Other fields
       designer: body.designer,
       project_manager: body.projectManager,
       updated_at: new Date().toISOString()

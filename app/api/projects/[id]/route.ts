@@ -37,7 +37,7 @@ export async function GET(
     );
     
     // Fetch the project and ensure it belongs to the current user
-    const { data, error } = await supabase
+    const { data: project, error } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
@@ -57,12 +57,50 @@ export async function GET(
       );
     }
     
-    // Project not found or doesn't belong to the user
-    if (!data) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-    }
+    // Enhance project with company details if IDs are available
+    let enhancedProject = { ...project };
     
-    return NextResponse.json(data);
+    // Helper function to get company details
+    const getCompanyById = async (companyId: string | null) => {
+      if (!companyId) return null;
+      
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', companyId)
+        .single();
+        
+      if (error) {
+        console.warn(`Error fetching company ${companyId}:`, error);
+        return null;
+      }
+      
+      return data;
+    };
+    
+    // Fetch all referenced companies in parallel
+    const [
+      masonryCompanyObj,
+      architectObj,
+      engineerObj,
+      ownerObj
+    ] = await Promise.all([
+      getCompanyById(project.masonry_company_id),
+      getCompanyById(project.architect_id),
+      getCompanyById(project.engineer_id),
+      getCompanyById(project.owner_id)
+    ]);
+    
+    // Add company objects to enhanced project
+    enhancedProject = {
+      ...enhancedProject,
+      masonryCompanyObj,
+      architectObj,
+      engineerObj,
+      ownerObj
+    };
+    
+    return NextResponse.json(enhancedProject);
   } catch (error) {
     console.error('Unhandled error in API route:', error);
     return NextResponse.json(

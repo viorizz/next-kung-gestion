@@ -24,7 +24,7 @@ import { projectPartService } from '@/lib/services/projectPartService';
 import { orderListService } from '@/lib/services/orderListService';
 import { Project } from '@/types/project';
 import { ProjectPart, ProjectPartFormData } from '@/types/projectPart';
-import { OrderList, OrderListFormData } from '@/types/orderList'; // Make sure this type is defined
+import { OrderList, OrderListFormData } from '@/types/orderList';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ProjectPartDialog } from '@/components/ui/projectpartdialog';
@@ -69,6 +69,14 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to get company name from either ID-based object or legacy name field
+  const getCompanyName = (companyObj: any | undefined, companyName: string | null) => {
+    if (companyObj && companyObj.name) {
+      return companyObj.name;
+    }
+    return companyName || null;
   };
 
   const handleAddProjectPart = async (formData: ProjectPartFormData | Partial<ProjectPart>) => {
@@ -138,38 +146,38 @@ export function ProjectDetailClient({ id }: ProjectDetailClientProps) {
     setIsAddOrderListDialogOpen(true);
   };
 
-// Handler for creating a new order list
-const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => {
-  if (!user || !selectedPartForOrderList) return;
-  
-  try {
-    // Prepare the order list data
-    const orderListData: OrderListFormData = {
-      partId: selectedPartForOrderList.id,
-      listNumber: orderList.listNumber || '',
-      name: orderList.name || '',
-      manufacturer: orderList.manufacturer || '',
-      type: orderList.type || '',
-      designer: orderList.designer || '',
-      projectManager: orderList.projectManager || '',
-      status: 'draft',
-      submissionDate: null
-    };
+  // Handler for creating a new order list
+  const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => {
+    if (!user || !selectedPartForOrderList) return;
     
-    // Create the order list using the service
-    await orderListService.createOrderList(orderListData);
-    
-    toast.success('Order list created successfully');
-    setIsAddOrderListDialogOpen(false);
-    setSelectedPartForOrderList(null);
-    
-    // Optionally, we could refresh the project details here
-    // fetchProjectDetails();
-  } catch (error) {
-    console.error('Error creating order list:', error);
-    toast.error('An error occurred while creating the order list');
-  }
-};
+    try {
+      // Prepare the order list data
+      const orderListData: OrderListFormData = {
+        partId: selectedPartForOrderList.id,
+        listNumber: orderList.listNumber || '',
+        name: orderList.name || '',
+        manufacturer: orderList.manufacturer || '',
+        type: orderList.type || '',
+        designer: orderList.designer || '',
+        projectManager: orderList.projectManager || '',
+        status: 'draft',
+        submissionDate: null
+      };
+      
+      // Create the order list using the service
+      await orderListService.createOrderList(orderListData);
+      
+      toast.success('Order list created successfully');
+      setIsAddOrderListDialogOpen(false);
+      setSelectedPartForOrderList(null);
+      
+      // Optionally, we could refresh the project details here
+      // fetchProjectDetails();
+    } catch (error) {
+      console.error('Error creating order list:', error);
+      toast.error('An error occurred while creating the order list');
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -200,6 +208,12 @@ const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => 
       </div>
     );
   }
+
+  // Get company names with the helper function
+  const masonryCompanyName = getCompanyName(project.masonryCompanyObj, project.masonryCompany);
+  const architectName = getCompanyName(project.architectObj, project.architect);
+  const engineerName = getCompanyName(project.engineerObj, project.engineer);
+  const ownerName = getCompanyName(project.ownerObj, project.owner);
 
   return (
     <div className="p-6">
@@ -288,28 +302,28 @@ const handleAddOrderList = async (orderList: OrderList | Partial<OrderList>) => 
                   <User2 className="h-4 w-4 text-muted-foreground" />
                   <span>Project Manager: {project.projectManager}</span>
                 </div>
-                {project.architect && (
+                {architectName && (
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>Architect: {project.architect}</span>
+                    <span>Architect: {architectName}</span>
                   </div>
                 )}
-                {project.engineer && (
+                {engineerName && (
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>Engineer: {project.engineer}</span>
+                    <span>Engineer: {engineerName}</span>
                   </div>
                 )}
-                {project.masonryCompany && (
+                {masonryCompanyName && (
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>Masonry Company: {project.masonryCompany}</span>
+                    <span>Masonry Company: {masonryCompanyName}</span>
                   </div>
                 )}
-                {project.owner && (
+                {ownerName && (
                   <div className="flex items-center gap-2">
                     <User2 className="h-4 w-4 text-muted-foreground" />
-                    <span>Owner: {project.owner}</span>
+                    <span>Owner: {ownerName}</span>
                   </div>
                 )}
               </CardContent>

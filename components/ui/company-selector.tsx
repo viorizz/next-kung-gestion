@@ -15,8 +15,8 @@ import { companyService } from '@/lib/services/companyService';
 import { Company } from '@/types/company';
 
 interface CompanySelectorProps {
-  value: string | null;
-  onChange: (value: string) => void;
+  companyId: string | null;
+  onSelectCompany: (id: string, name: string) => void;
   placeholder: string;
   companyType?: string;
   disabled?: boolean;
@@ -24,8 +24,8 @@ interface CompanySelectorProps {
 }
 
 export function CompanySelector({
-  value,
-  onChange,
+  companyId,
+  onSelectCompany,
   placeholder,
   companyType,
   disabled = false,
@@ -35,6 +35,7 @@ export function CompanySelector({
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   // Fetch companies when component mounts or companyType changes
   useEffect(() => {
@@ -50,34 +51,42 @@ export function CompanySelector({
         
         console.log(`Loaded ${data.length} companies for type ${companyType || 'all'}`);
         setCompanies(data);
+        
+        // If we have a companyId, find and set the selected company
+        if (companyId) {
+          const found = data.find(company => company.id === companyId);
+          setSelectedCompany(found || null);
+        } else {
+          setSelectedCompany(null);
+        }
       } catch (error) {
         console.error('Failed to load companies:', error);
         setCompanies([]);
+        setSelectedCompany(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCompanies();
-  }, [companyType]);
+  }, [companyType, companyId]);
 
   // Filter companies based on search term
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Get the selected company
-  const selectedCompany = companies.find(company => company.name === value);
-
   // Handle selecting a company
-  const handleSelect = (companyName: string) => {
-    onChange(companyName);
+  const handleSelect = (company: Company) => {
+    setSelectedCompany(company);
+    onSelectCompany(company.id, company.name);
     setOpen(false);
   };
 
   // Clear the selected value
   const handleClear = () => {
-    onChange('');
+    setSelectedCompany(null);
+    onSelectCompany('', '');
   };
 
   return (
@@ -90,13 +99,13 @@ export function CompanySelector({
           disabled={disabled}
           className={cn(
             "w-full justify-between",
-            !value && "text-muted-foreground",
+            !selectedCompany && "text-muted-foreground",
             className
           )}
         >
-          {value ? (
+          {selectedCompany ? (
             <div className="flex items-center justify-between w-full">
-              <span>{selectedCompany?.name || value}</span>
+              <span>{selectedCompany.name}</span>
               {!disabled && (
                 <X
                   className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100"
@@ -133,17 +142,22 @@ export function CompanySelector({
                   className={cn(
                     "flex items-center px-2 py-2 rounded-sm text-sm cursor-pointer",
                     "hover:bg-accent hover:text-accent-foreground",
-                    value === company.name && "bg-accent text-accent-foreground"
+                    selectedCompany?.id === company.id && "bg-accent text-accent-foreground"
                   )}
-                  onClick={() => handleSelect(company.name)}
+                  onClick={() => handleSelect(company)}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === company.name ? "opacity-100" : "opacity-0"
+                      selectedCompany?.id === company.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {company.name}
+                  <div className="flex flex-col">
+                    <span className="font-medium">{company.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {company.city}, {company.type}
+                    </span>
+                  </div>
                 </div>
               ))
             )}

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Project, ProjectFormData } from '@/types/project';
-// Import our new CompanySelector component instead of CompanyCombobox
+// Import CompanySelector component instead of CompanyCombobox
 import { CompanySelector } from '@/components/ui/company-selector';
 
 // Field configuration for focusing
@@ -22,10 +22,10 @@ const fieldOrder = [
   'address',
   'designer',
   'projectManager',
-  'masonryCompany',
-  'architect',
-  'engineer',
-  'owner',
+  'masonryCompanyId',
+  'architectId',
+  'engineerId',
+  'ownerId',
 ];
 
 interface ProjectDialogProps {
@@ -58,10 +58,15 @@ export function ProjectDialog({
     address: '',
     designer: '',
     projectManager: '',
+    // Include both old string fields and new ID fields
     masonryCompany: null,
     architect: null,
     engineer: null,
     owner: null,
+    masonryCompanyId: null,
+    architectId: null,
+    engineerId: null,
+    ownerId: null,
   });
 
   // Reset form when dialog opens/closes or project changes
@@ -74,10 +79,15 @@ export function ProjectDialog({
         address: project.address,
         designer: project.designer,
         projectManager: project.projectManager,
+        // Set both string fields and ID fields
         masonryCompany: project.masonryCompany,
         architect: project.architect,
         engineer: project.engineer,
         owner: project.owner,
+        masonryCompanyId: project.masonryCompanyId,
+        architectId: project.architectId,
+        engineerId: project.engineerId,
+        ownerId: project.ownerId,
       });
     } else if (open) {
       // Reset form when opening for a new project
@@ -91,6 +101,10 @@ export function ProjectDialog({
         architect: null,
         engineer: null,
         owner: null,
+        masonryCompanyId: null,
+        architectId: null,
+        engineerId: null,
+        ownerId: null,
       });
     }
   }, [project, open]);
@@ -110,8 +124,34 @@ export function ProjectDialog({
     setFormData(prev => ({ ...prev, [name]: value || null }));
   };
   
-  const handleCompanyChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value || null }));
+  // Handle company ID selection with name update
+  const handleCompanyChange = (field: string, companyId: string, companyName: string) => {
+    // Update both the ID field and the string field for backward compatibility
+    if (field === 'masonryCompanyId') {
+      setFormData(prev => ({ 
+        ...prev, 
+        masonryCompanyId: companyId || null,
+        masonryCompany: companyName || null 
+      }));
+    } else if (field === 'architectId') {
+      setFormData(prev => ({ 
+        ...prev, 
+        architectId: companyId || null,
+        architect: companyName || null 
+      }));
+    } else if (field === 'engineerId') {
+      setFormData(prev => ({ 
+        ...prev, 
+        engineerId: companyId || null,
+        engineer: companyName || null 
+      }));
+    } else if (field === 'ownerId') {
+      setFormData(prev => ({ 
+        ...prev, 
+        ownerId: companyId || null,
+        owner: companyName || null 
+      }));
+    }
   };
   
   // Handle tab and enter key to move between fields (only for text inputs)
@@ -231,23 +271,23 @@ export function ProjectDialog({
             </div>
           </div>
           
-          {/* 2x2 grid for company fields with the new CompanySelector */}
+          {/* Company selectors using IDs */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="masonryCompany">Masonry Company</Label>
+              <Label htmlFor="masonryCompanyId">Masonry Company</Label>
               <CompanySelector
-                value={formData.masonryCompany}
-                onChange={(value) => handleCompanyChange('masonryCompany', value)}
+                companyId={formData.masonryCompanyId}
+                onSelectCompany={(id, name) => handleCompanyChange('masonryCompanyId', id, name)}
                 placeholder="Select company"
                 companyType="Masonry"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="architect">Architect</Label>
+              <Label htmlFor="architectId">Architect</Label>
               <CompanySelector
-                value={formData.architect}
-                onChange={(value) => handleCompanyChange('architect', value)}
+                companyId={formData.architectId}
+                onSelectCompany={(id, name) => handleCompanyChange('architectId', id, name)}
                 placeholder="Select architect"
                 companyType="Architect"
               />
@@ -256,20 +296,20 @@ export function ProjectDialog({
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="engineer">Engineer</Label>
+              <Label htmlFor="engineerId">Engineer</Label>
               <CompanySelector
-                value={formData.engineer}
-                onChange={(value) => handleCompanyChange('engineer', value)}
+                companyId={formData.engineerId}
+                onSelectCompany={(id, name) => handleCompanyChange('engineerId', id, name)}
                 placeholder="Select engineer"
                 companyType="Engineer"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="owner">Owner</Label>
+              <Label htmlFor="ownerId">Owner</Label>
               <CompanySelector
-                value={formData.owner}
-                onChange={(value) => handleCompanyChange('owner', value)}
+                companyId={formData.ownerId}
+                onSelectCompany={(id, name) => handleCompanyChange('ownerId', id, name)}
                 placeholder="Select owner"
                 companyType="Contractor"
               />

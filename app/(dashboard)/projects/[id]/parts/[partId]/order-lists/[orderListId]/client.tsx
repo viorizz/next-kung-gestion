@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react'; // Added useMemo
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +10,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
+  CardDescription, // Keep even if not used directly in this snippet
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +24,10 @@ import {
   Package,
   ArrowLeft,
   FileText,
-  Download,
+  Download, // Keep even if not used directly in this snippet
+  Briefcase, // Added Icon
+  Phone, // Added Icon
+  MapPin, // Added Icon
 } from 'lucide-react';
 import { orderListService } from '@/lib/services/orderListService';
 import { itemService } from '@/lib/services/itemService';
@@ -34,13 +37,12 @@ import { OrderListDialog } from '@/components/ui/orderlistdialog';
 import { ItemDialog } from '@/components/ui/itemdialog';
 import { ItemTable } from '@/components/ui/itemtable';
 import { PDFViewer } from '@/components/ui/pdfviewer';
-// REMOVED: import { getFormMapping, applyFormMapping } from '@/lib/pdf/formMapping';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
-import { PdfTemplate } from '@/types/pdfTemplate'; // Import PdfTemplate type
+import { PdfTemplate } from '@/types/pdfTemplate';
 
 interface OrderListDetailClientProps {
   projectId: string;
@@ -48,8 +50,34 @@ interface OrderListDetailClientProps {
   orderListId: string;
 }
 
-// Define a type for the parsed mapping
 type FormMapping = Record<string, { source: string; field: string }>;
+
+// --- CRITICAL POINT ---
+// Ensure this interface EXACTLY matches the structure
+// returned by your `projectService.getProject` endpoint,
+// including the nested company objects and their fields.
+interface EnrichedProjectData {
+  id: string;
+  name: string;
+  projectNumber?: string;
+  // ... other existing project fields you need ...
+  engineer: {
+    id: string;
+    name: string;
+    address?: string;
+    city?: string;
+    phone?: string;
+    // ... any other company fields you need ...
+  } | null; // Can be null if no engineer linked
+  masonryCompany: {
+    id: string;
+    name: string;
+    address?: string;
+    city?: string;
+    phone?: string;
+    // ... any other company fields you need ...
+  } | null; // Can be null if no masonry company linked
+}
 
 export function OrderListDetailClient({
   projectId,
@@ -57,8 +85,9 @@ export function OrderListDetailClient({
   orderListId,
 }: OrderListDetailClientProps) {
   const { user, isLoaded } = useUser();
-  const [project, setProject] = useState<any>(null);
-  const [projectPart, setProjectPart] = useState<any>(null);
+  // Use the specific type for project state
+  const [project, setProject] = useState<EnrichedProjectData | null>(null); // MODIFIED TYPE
+  const [projectPart, setProjectPart] = useState<any>(null); // Consider typing this too if possible
   const [orderList, setOrderList] = useState<OrderList | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,127 +95,120 @@ export function OrderListDetailClient({
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [activeTab, setActiveTab] = useState('items');
-  const [pdfTemplate, setPdfTemplate] = useState<PdfTemplate | null>(null); // State to store the fetched template object
-
-  // Removed separate pdfUrl and formMapping states
+  const [pdfTemplate, setPdfTemplate] = useState<PdfTemplate | null>(null);
 
   useEffect(() => {
     if (isLoaded && user) {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, user, orderListId]); // Keep dependencies minimal
+  }, [isLoaded, user, orderListId]);
 
   const fetchData = async () => {
     if (!user) return;
     setIsLoading(true);
-    setPdfTemplate(null); // Reset template on each fetch
+    setPdfTemplate(null);
+    setProject(null); // Reset project state on fetch
+    setProjectPart(null); // Reset part state on fetch
     try {
-      // Fetch order list details
       const orderListData = await orderListService.getOrderList(orderListId);
       setOrderList(orderListData);
 
-      // Fetch items for this order list
       const itemsData = await itemService.getItems(orderListId);
       setItems(itemsData);
 
-      // Fetch project part details
+      // Fetch project part first to get projectId if needed (though it's passed as prop)
+      // Ensure partId is valid before proceeding
       const partData = await projectPartService.getProjectPart(partId);
       setProjectPart(partData);
 
-      // Fetch project details
-      const projectData = await projectService.getProject(partData.projectId);
-      setProject(projectData);
+      // --- FETCH ENRICHED PROJECT DATA ---
+      // This service call MUST return data matching `EnrichedProjectData`
+      const enrichedProjectData: EnrichedProjectData =
+        await projectService.getProject(partData.projectId); // Use partData.projectId
+      setProject(enrichedProjectData); // Set the enriched data
 
-      // Fetch the template including the mapping, if manufacturer/type exist
+      // Fetch template based on order list details
       if (orderListData.manufacturer && orderListData.type) {
         const template =
           await pdfTemplateService.getTemplateByManufacturerAndType(
             orderListData.manufacturer,
             orderListData.type,
-            user.id // Assuming service needs userId for authorization
+            user.id,
           );
-        setPdfTemplate(template || null); // Store the fetched template (or null if not found)
+        setPdfTemplate(template || null);
       } else {
         console.warn('Order list is missing manufacturer or type.');
-        setPdfTemplate(null); // Ensure template is null if info is missing
+        setPdfTemplate(null);
       }
-
-      // REMOVED: Old local getFormMapping logic
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while loading data');
-      setPdfTemplate(null); // Ensure template is null on error
+      // Ensure states are reset on error
+      setPdfTemplate(null);
+      setProject(null);
+      setProjectPart(null);
+      setOrderList(null); // Also reset orderList if fetch fails critically
+      setItems([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Use useMemo to parse the mapping only when the template changes
+  // --- formMapping and pdfUrl derivation (using useMemo) ---
   const formMapping: FormMapping = useMemo(() => {
-    if (!pdfTemplate?.fieldMapping) {
-      return {}; // No template or no mapping defined
-    }
+    if (!pdfTemplate?.fieldMapping) return {};
     try {
-      // Parse the JSON string from the template
       const parsedMapping = JSON.parse(pdfTemplate.fieldMapping);
-      // Basic validation: ensure it's a non-null object
       if (typeof parsedMapping === 'object' && parsedMapping !== null) {
         return parsedMapping as FormMapping;
       }
       console.warn(
         'Invalid JSON format in fieldMapping:',
-        pdfTemplate.fieldMapping
+        pdfTemplate.fieldMapping,
       );
       toast.warning('PDF field mapping is invalid. Check template settings.');
-      return {}; // Return empty object on invalid format
+      return {};
     } catch (error) {
       console.error('Error parsing fieldMapping JSON:', error);
       toast.error('Failed to parse PDF field mapping.');
-      return {}; // Return empty object on parsing error
+      return {};
     }
-  }, [pdfTemplate]); // Re-run only when pdfTemplate changes
+  }, [pdfTemplate]);
 
-  // Derive PDF URL directly from the fetched template state
   const pdfUrl = pdfTemplate?.pdfUrl || null;
-
-  // Determine if PDF viewer should be shown based on derived URL
   const showPdfViewer = !!pdfUrl;
 
-  // Handler for updating the order list
+  // --- Handlers (handleUpdateOrderList, handleAddItem, etc.) ---
+  // These should generally work fine unless they incorrectly assume
+  // structure within the `project` object without checking for nulls.
   const handleUpdateOrderList = async (
-    updatedOrderList: Partial<OrderList> // Accept partial updates
+    updatedOrderList: Partial<OrderList>,
   ) => {
     if (!user || !orderList) return;
-
     try {
       const result = await orderListService.updateOrderList(
         orderListId,
-        updatedOrderList
+        updatedOrderList,
       );
-
-      // IMPORTANT: If manufacturer or type changed, we MUST refetch all data
-      // because the associated PDF template might have changed.
+      // Refetch ALL data if manufacturer/type changes, as template might change
       if (
         updatedOrderList.manufacturer !== orderList.manufacturer ||
         updatedOrderList.type !== orderList.type
       ) {
         toast.info('Manufacturer/Type changed, reloading data...');
-        fetchData(); // Refetch everything including the new template
+        fetchData(); // Refetch everything
       } else {
-        // Otherwise, just update the order list state locally
         setOrderList(result);
         toast.success('Order list updated successfully');
       }
-      setIsEditDialogOpen(false); // Close dialog on success
+      setIsEditDialogOpen(false);
     } catch (error) {
       console.error('Error updating order list:', error);
       toast.error('An error occurred while updating the order list');
     }
   };
 
-  // --- Other handlers (handleAddItem, handleUpdateItem, etc.) remain the same ---
-  // (Assuming they don't need direct access to pdfUrl or formMapping)
   const handleAddItem = async (item: Partial<Item>) => {
     if (!user || !orderList) return;
     try {
@@ -206,7 +228,7 @@ export function OrderListDetailClient({
     try {
       const result = await itemService.updateItem(editingItem.id, item);
       setItems((prevItems) =>
-        prevItems.map((i) => (i.id === editingItem.id ? result : i))
+        prevItems.map((i) => (i.id === editingItem.id ? result : i)),
       );
       toast.success('Item updated successfully');
       setEditingItem(null);
@@ -237,7 +259,7 @@ export function OrderListDetailClient({
     if (!user || !orderList) return;
     if (
       !confirm(
-        'Are you sure you want to submit this order list? This action cannot be undone easily.'
+        'Are you sure you want to submit this order list? This action cannot be undone easily.',
       )
     )
       return;
@@ -252,7 +274,7 @@ export function OrderListDetailClient({
   };
 
   // --- Helper functions ---
-  const formatDate = (dateString: string | null | undefined | Date) => {
+  const formatDate = (dateString: string | null | undefined | Date): string => {
     if (!dateString) return 'N/A';
     try {
       return new Date(dateString).toLocaleDateString();
@@ -261,7 +283,7 @@ export function OrderListDetailClient({
     }
   };
 
-  const getStatusBadgeColor = (status: string = 'unknown') => {
+  const getStatusBadgeColor = (status: string = 'unknown'): string => {
     switch (status.toLowerCase()) {
       case 'draft':
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
@@ -285,16 +307,17 @@ export function OrderListDetailClient({
     );
   }
 
+  // Ensure orderList is checked *after* loading and *before* accessing its properties
   if (!orderList) {
     return (
       <div className="p-6">
         <div className="text-center py-12 border rounded-lg bg-card">
-          <p className="text-muted-foreground">
-            The requested order list was not found or you don't have access to
-            it.
+          <p className="text-muted-foreground mb-4">
+            The requested order list was not found or could not be loaded.
           </p>
+          {/* Provide relevant back links */}
           <Link href={`/projects/${projectId}/parts/${partId}`}>
-            <Button className="mt-4">
+            <Button variant="outline" className="mt-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Project Part
             </Button>
@@ -304,28 +327,29 @@ export function OrderListDetailClient({
     );
   }
 
+  // Now it's safe to assume orderList is not null
   return (
     <div className="p-6">
       {/* Breadcrumb */}
       <div className="text-sm text-muted-foreground mb-4">
         <Link href="/dashboard" className="hover:underline">
           Dashboard
-        </Link>
+        </Link>{' '}
         {' / '}
         <Link href="/projects" className="hover:underline">
           Projects
-        </Link>
+        </Link>{' '}
         {' / '}
         <Link href={`/projects/${projectId}`} className="hover:underline">
-          {project?.name || 'Project'} {/* Display project name */}
-        </Link>
+          {project?.name || 'Project'} {/* Safe access */}
+        </Link>{' '}
         {' / '}
         <Link
           href={`/projects/${projectId}/parts/${partId}`}
           className="hover:underline"
         >
-          {projectPart?.name || 'Part'} {/* Display part name */}
-        </Link>
+          {projectPart?.name || 'Part'} {/* Safe access */}
+        </Link>{' '}
         {' / '}
         Order List {orderList.listNumber}
       </div>
@@ -360,8 +384,9 @@ export function OrderListDetailClient({
         </div>
       </div>
 
-      {/* Order List Details Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {/* Order List Details Cards - MODIFIED LAYOUT AND CONTENT */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        {/* Order List Info Card */}
         <Card>
           <CardHeader>
             <CardTitle>Order List Information</CardTitle>
@@ -400,11 +425,30 @@ export function OrderListDetailClient({
           </CardContent>
         </Card>
 
+        {/* Project & Team Info Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Team & Project Info</CardTitle>
+            <CardTitle>Project & Team Info</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Project:{' '}
+                <span className="font-medium text-foreground">
+                  {project?.name || 'N/A'} {/* Safe access */}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Part:{' '}
+                <span className="font-medium text-foreground">
+                  {projectPart?.name || 'N/A'} {/* Safe access */}
+                </span>
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
@@ -423,24 +467,89 @@ export function OrderListDetailClient({
                 </span>
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                Project:{' '}
-                <span className="font-medium text-foreground">
-                  {project?.name || 'N/A'}
+          </CardContent>
+        </Card>
+
+        {/* Companies Info Card - ADDED/MODIFIED */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Contacts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Engineer Details - Uses optional chaining */}
+            {project?.engineer ? (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    Engineer: {project.engineer.name}
+                  </span>
+                </div>
+                {project.engineer.address && (
+                  <div className="flex items-center gap-2 ml-6">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {project.engineer.address}
+                      {project.engineer.city ? `, ${project.engineer.city}` : ''}
+                    </span>
+                  </div>
+                )}
+                {project.engineer.phone && (
+                  <div className="flex items-center gap-2 ml-6">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {project.engineer.phone}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Engineer: N/A
                 </span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                Part:{' '}
-                <span className="font-medium text-foreground">
-                  {projectPart?.name || 'N/A'}
+              </div>
+            )}
+            {/* Masonry Details - Uses optional chaining */}
+            {project?.masonryCompany ? (
+              <div className="space-y-1 pt-3 border-t mt-3">
+                {' '}
+                {/* Added separator */}
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    Masonry: {project.masonryCompany.name}
+                  </span>
+                </div>
+                {project.masonryCompany.address && (
+                  <div className="flex items-center gap-2 ml-6">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {project.masonryCompany.address}
+                      {project.masonryCompany.city
+                        ? `, ${project.masonryCompany.city}`
+                        : ''}
+                    </span>
+                  </div>
+                )}
+                {project.masonryCompany.phone && (
+                  <div className="flex items-center gap-2 ml-6">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {project.masonryCompany.phone}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pt-3 border-t mt-3">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Masonry: N/A
                 </span>
-              </span>
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -454,12 +563,9 @@ export function OrderListDetailClient({
       >
         <TabsList>
           <TabsTrigger value="items">Items ({items.length})</TabsTrigger>
-          {/* Disable PDF tab if no viewer */}
           <TabsTrigger value="pdf" disabled={!showPdfViewer}>
             PDF Form
           </TabsTrigger>
-          {/* <TabsTrigger value="documents">Documents</TabsTrigger> */}
-          {/* <TabsTrigger value="history">History</TabsTrigger> */}
         </TabsList>
 
         {/* Items Tab */}
@@ -468,17 +574,15 @@ export function OrderListDetailClient({
             <h2 className="text-xl font-semibold">Order List Items</h2>
             {orderList?.status === 'draft' && (
               <Button onClick={() => setIsAddItemDialogOpen(true)}>
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Item
+                <PlusIcon className="h-4 w-4 mr-2" /> Add Item
               </Button>
             )}
           </div>
-
           {items.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground mb-4">
-                  No items found in this order list. Start by adding items.
+                  No items found...
                 </p>
                 {orderList?.status === 'draft' && (
                   <Button onClick={() => setIsAddItemDialogOpen(true)}>
@@ -502,18 +606,15 @@ export function OrderListDetailClient({
         <TabsContent value="pdf" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Order Form Preview</h2>
-            {/* Removed extra buttons, PDFViewer has its own export */}
           </div>
-
-          {/* Conditionally render PDFViewer or the placeholder card */}
-          {showPdfViewer && pdfUrl ? ( // Ensure pdfUrl is not null here
+          {showPdfViewer && pdfUrl ? (
             <PDFViewer
-              pdfUrl={pdfUrl} // Pass the derived PDF URL
-              projectData={project}
+              pdfUrl={pdfUrl}
+              projectData={project} // Pass enriched project data
               partData={projectPart}
               orderListData={orderList}
               isReadOnly={orderList?.status !== 'draft'}
-              formDataMapping={formMapping} // Pass the parsed mapping
+              formDataMapping={formMapping}
             />
           ) : (
             <Card>
@@ -540,25 +641,16 @@ export function OrderListDetailClient({
             </Card>
           )}
         </TabsContent>
-
-        {/* Documents Tab (Placeholder) */}
-        {/* <TabsContent value="documents"> ... </TabsContent> */}
-
-        {/* History Tab (Placeholder) */}
-        {/* <TabsContent value="history"> ... </TabsContent> */}
       </Tabs>
 
       {/* Dialogs */}
-      {/* Edit Order List Dialog */}
       <OrderListDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onSave={handleUpdateOrderList}
-        orderList={orderList} // Pass the full order list for pre-filling
+        orderList={orderList}
         partId={partId}
       />
-
-      {/* Add Item Dialog */}
       <ItemDialog
         open={isAddItemDialogOpen}
         onOpenChange={setIsAddItemDialogOpen}
@@ -567,11 +659,9 @@ export function OrderListDetailClient({
         manufacturer={orderList.manufacturer}
         productType={orderList.type}
       />
-
-      {/* Edit Item Dialog */}
       {editingItem && (
         <ItemDialog
-          open={!!editingItem} // Open if editingItem is not null
+          open={!!editingItem}
           onOpenChange={(open) => !open && setEditingItem(null)}
           onSave={handleUpdateItem}
           item={editingItem}

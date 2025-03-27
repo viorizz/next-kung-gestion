@@ -91,15 +91,22 @@ export async function POST(request: Request) {
       { auth: { persistSession: false } }
     );
     
-    // Format the data for database insertion
+    // Format the data for database insertion with new fields
     const projectData = {
       project_number: body.projectNumber,
       name: body.name,
       address: body.address,
+      // Original string fields
       masonry_company: body.masonryCompany || null,
       architect: body.architect || null, 
       engineer: body.engineer || null,
       owner: body.owner || null,
+      // New UUID fields
+      masonry_company_id: body.masonryCompanyId || null,
+      architect_id: body.architectId || null,
+      engineer_id: body.engineerId || null,
+      owner_id: body.ownerId || null,
+      // Other fields
       designer: body.designer,
       project_manager: body.projectManager,
       user_id: userId,

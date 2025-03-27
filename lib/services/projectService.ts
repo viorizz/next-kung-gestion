@@ -7,10 +7,22 @@ const mapDbProjectToProject = (dbProject: any): Project => ({
   projectNumber: dbProject.project_number,
   name: dbProject.name,
   address: dbProject.address,
+  // Map original string fields
   masonryCompany: dbProject.masonry_company,
   architect: dbProject.architect,
   engineer: dbProject.engineer,
   owner: dbProject.owner,
+  // Map new UUID fields
+  masonryCompanyId: dbProject.masonry_company_id,
+  architectId: dbProject.architect_id,
+  engineerId: dbProject.engineer_id,
+  ownerId: dbProject.owner_id,
+  // Map company objects if they exist
+  masonryCompanyObj: dbProject.masonryCompanyObj || undefined,
+  architectObj: dbProject.architectObj || undefined,
+  engineerObj: dbProject.engineerObj || undefined,
+  ownerObj: dbProject.ownerObj || undefined,
+  // Other fields
   designer: dbProject.designer,
   projectManager: dbProject.project_manager,
   userId: dbProject.user_id,
@@ -62,10 +74,16 @@ export const projectService = {
         projectNumber: projectData.projectNumber,
         name: projectData.name,
         address: projectData.address,
+        // Include both string fields and ID fields
         masonryCompany: projectData.masonryCompany,
         architect: projectData.architect,
         engineer: projectData.engineer,
         owner: projectData.owner,
+        // Add new ID fields
+        masonryCompanyId: projectData.masonryCompanyId,
+        architectId: projectData.architectId,
+        engineerId: projectData.engineerId,
+        ownerId: projectData.ownerId,
         designer: projectData.designer,
         projectManager: projectData.projectManager
       };
