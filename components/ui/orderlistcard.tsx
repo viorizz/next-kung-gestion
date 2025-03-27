@@ -10,6 +10,8 @@ import Link from 'next/link';
 interface OrderListCardProps {
   orderList: OrderList;
   onEditClick: () => void;
+  projectId: string;
+  partId: string;
 }
 
 export function OrderListCard({ orderList, onEditClick }: OrderListCardProps) {
