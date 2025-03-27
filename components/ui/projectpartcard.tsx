@@ -10,6 +10,7 @@ interface ProjectPartCardProps {
   projectPart: ProjectPart;
   onEditClick: () => void;
   onAddOrderListClick?: () => void; // Added callback for opening order list dialog
+  projectId: string;
 }
 
 export function ProjectPartCard({ projectPart, onEditClick, onAddOrderListClick }: ProjectPartCardProps) {
