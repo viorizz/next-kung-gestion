@@ -54,7 +54,11 @@ export default function ProjectsPage() {
         masonryCompany: formData.masonryCompany || null,
         architect: formData.architect || null,
         engineer: formData.engineer || null,
-        owner: formData.owner || null
+        owner: formData.owner || null,
+        masonryCompanyId: formData.masonryCompanyId || null,
+        architectId: formData.architectId || null,
+        engineerId: formData.engineerId || null,
+        ownerId: formData.ownerId || null,
       };
       
       await projectService.createProject(projectFormData, user.id);
