@@ -56,12 +56,24 @@ export function PDFViewer({
   const [scale, setScale] = useState(1.0);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Helper function to access nested properties using dot notation
+  const getNestedProperty = (obj: any, path: string): any => {
+    if (!obj || !path) return '';
+    return path.split('.').reduce((prev, curr) => 
+      prev && prev[curr] !== undefined ? prev[curr] : null, obj);
+  };
+
   // Memoize formData calculation
   const formData = useMemo(() => {
-    console.log('[PDFViewer useMemo] Calculating formData. Inputs:', { /* ... */ });
+    console.log('[PDFViewer useMemo] Calculating formData. Inputs:', { 
+      projectData, 
+      partData, 
+      orderListData,
+      formDataMapping 
+    });
 
     if (!projectData || !partData || !orderListData) {
-      console.warn(/* ... */);
+      console.warn('[PDFViewer] Missing data for form mapping');
       return {};
     }
 
@@ -69,60 +81,51 @@ export function PDFViewer({
     Object.entries(formDataMapping).forEach(([pdfField, mapping]) => {
       let value: any = '';
       try {
-        console.log( /* ... */ );
+        console.log(`[PDFViewer] Processing field mapping: ${pdfField} -> ${mapping.source}.${mapping.field}`);
 
         switch (mapping.source) {
           case 'project':
-            value = projectData?.[mapping.field];
-            console.log( /* ... */ );
+            value = getNestedProperty(projectData, mapping.field);
+            console.log(`  -> Source 'project', Field '${mapping.field}', Value:`, value);
             break;
           case 'part':
-            value = partData?.[mapping.field];
-            console.log( /* ... */ );
+            value = getNestedProperty(partData, mapping.field);
+            console.log(`  -> Source 'part', Field '${mapping.field}', Value:`, value);
             break;
           case 'orderList':
-            value = orderListData?.[mapping.field];
-            console.log( /* ... */ );
+            value = getNestedProperty(orderListData, mapping.field);
+            console.log(`  -> Source 'orderList', Field '${mapping.field}', Value:`, value);
             break;
-
-          // ***** MODIFIED CUSTOM CASE *****
           case 'custom':
             if (mapping.field === 'currentDate') {
               value = new Date().toLocaleDateString();
             }
             // --- Logic for compositePartNumber ---
             else if (mapping.field === 'compositePartNumber') {
-              // !! Adjust property names if needed !!
-              const projNum = projectData?.projectNumber ?? '??'; // Use ?? for nullish coalescing
+              const projNum = projectData?.projectNumber ?? '??';
               const partNum = partData?.partNumber ?? '??';
               value = `${projNum}-${partNum}`;
               console.log(`  -> Custom compositePartNumber: ${projNum}-${partNum}`);
             }
             // --- Logic for compositeOrderListNumber ---
             else if (mapping.field === 'compositeOrderListNumber') {
-              // !! Adjust property names if needed !!
               const projNum = projectData?.projectNumber ?? '??';
               const partNum = partData?.partNumber ?? '??';
-              const listNum = orderListData?.listNumber ?? '??'; // Use listNumber from orderListData
+              const listNum = orderListData?.listNumber ?? '??';
               value = `${projNum}-${partNum}.${listNum}`;
               console.log(`  -> Custom compositeOrderListNumber: ${projNum}-${partNum}.${listNum}`);
             }
             // Log the final custom value
-            console.log(
-              `  -> Source 'custom', Field '${mapping.field}', Final Value:`,
-              value
-            );
+            console.log(`  -> Source 'custom', Field '${mapping.field}', Final Value:`, value);
             break;
-          // ***** END MODIFIED CUSTOM CASE *****
-
           default:
-            console.warn( /* ... */ );
+            console.warn(`[PDFViewer] Unknown source type: ${mapping.source}`);
             break;
         }
         mappedData[pdfField] =
           value !== null && value !== undefined ? String(value) : '';
       } catch (e) {
-        console.error( /* ... */ );
+        console.error(`[PDFViewer] Error processing field mapping for ${pdfField}:`, e);
         mappedData[pdfField] = '';
       }
     });
@@ -132,7 +135,6 @@ export function PDFViewer({
 
   // --- PDF Loading Effect ---
   useEffect(() => {
-    // ... (loadPDF logic with console logs - unchanged) ...
     let isMounted = true;
     const loadPDF = async () => {
       console.log('[PDFViewer useEffect loadPDF] Attempting to load:', pdfUrl);
@@ -226,7 +228,6 @@ export function PDFViewer({
       isMounted = false;
       pdfJsDoc?.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfUrl]);
 
   // --- PDF Rendering Effect ---
@@ -236,17 +237,13 @@ export function PDFViewer({
         `[PDFViewer renderPage] Attempting to render page ${pageNum}`
       );
 
-      // ***** FIX: Check if canvasRef.current exists *****
       if (!canvasRef.current) {
         console.warn(
           `[PDFViewer renderPage] Aborted page ${pageNum}: canvasRef.current is null. Canvas may not be rendered yet.`
         );
-        // It's okay to just return; the effect will likely run again once the canvas is mounted.
         return;
       }
-      // ***** END FIX *****
 
-      // Now it's safe to get the canvas
       const canvas = canvasRef.current;
 
       if (!pdfDoc) {
@@ -256,7 +253,6 @@ export function PDFViewer({
         return;
       }
 
-      // Set loading true only if we are actually going to render
       setIsLoading(true);
       try {
         const page: PDFPageProxy = await pdfDoc.getPage(pageNum);
@@ -265,14 +261,12 @@ export function PDFViewer({
         );
         const viewport = page.getViewport({ scale });
 
-        // canvas is guaranteed non-null here
         const context = canvas.getContext('2d');
         if (!context) {
           console.error(
             '[PDFViewer renderPage] Could not get 2D context for canvas'
           );
           setError('Failed to render PDF: Canvas context unavailable.');
-          // Set loading false here as we are stopping the render process
           setIsLoading(false);
           return;
         }
@@ -295,11 +289,10 @@ export function PDFViewer({
         console.error(`[PDFViewer renderPage] Error rendering page ${pageNum}:`, err);
         setError(`Failed to render page ${pageNum}: ${err.message}`);
       } finally {
-        // Always set loading false after attempting to render (success or fail)
         setIsLoading(false);
       }
     },
-    [scale] // Dependency: scale
+    [scale]
   );
 
   useEffect(() => {
@@ -313,7 +306,7 @@ export function PDFViewer({
         `[PDFViewer useEffect render] Skipping render: pdfJsDoc not available`
       );
     }
-  }, [pdfJsDoc, currentPage, renderPage]); // Dependencies: pdfJsDoc, currentPage, renderPage
+  }, [pdfJsDoc, currentPage, renderPage]);
 
   // --- Export Handler ---
   const handleExport = async () => {
@@ -367,13 +360,11 @@ export function PDFViewer({
         }
       });
 
-      // ***** ADD THIS LINE TO FLATTEN THE FORM *****
       console.log('[PDFViewer handleExport] Flattening form...');
       form.flatten();
-      // **********************************************
 
       console.log('[PDFViewer handleExport] Saving flattened PDF bytes...');
-      const filledPdfBytes = await pdfDoc.save(); // Save the modified (flattened) document
+      const filledPdfBytes = await pdfDoc.save();
       console.log(
         '[PDFViewer handleExport] Saved bytes length:',
         filledPdfBytes.byteLength
@@ -416,7 +407,6 @@ export function PDFViewer({
   const zoomOut = () => setScale((s) => Math.max(0.5, s - 0.2));
 
   // --- Render Logic ---
-  // ... (JSX rendering logic - unchanged) ...
   if (!pdfUrl && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] text-center p-6 border rounded-lg bg-card">
