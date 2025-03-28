@@ -62,6 +62,19 @@ export function PDFViewer({
     return path.split('.').reduce((prev, curr) => 
       prev && prev[curr] !== undefined ? prev[curr] : null, obj);
   };
+  
+  // Helper function to format address fields
+  const formatAddress = (address: string | null | undefined): string => {
+    return address || '';
+  };
+  
+  // Helper function to format city with postal code
+  const formatCity = (postalCode: string | null | undefined, city: string | null | undefined): string => {
+    if (!postalCode && !city) return '';
+    if (!postalCode) return city || '';
+    if (!city) return postalCode || '';
+    return `CH-${postalCode} ${city}`;
+  };
 
   // Memoize formData calculation
   const formData = useMemo(() => {
@@ -114,6 +127,32 @@ export function PDFViewer({
               const listNum = orderListData?.listNumber ?? '??';
               value = `${projNum}-${partNum}.${listNum}`;
               console.log(`  -> Custom compositeOrderListNumber: ${projNum}-${partNum}.${listNum}`);
+            }
+            // --- Engineer Address Formatting ---
+            else if (mapping.field === 'engineerFormattedAddress') {
+              const address = projectData?.engineer?.street;
+              value = formatAddress(address);
+              console.log(`  -> Custom engineerFormattedAddress: ${value}`);
+            }
+            // --- Engineer City with Postal Code Formatting ---
+            else if (mapping.field === 'engineerFormattedCity') {
+              const postalCode = projectData?.engineer?.postalCode;
+              const city = projectData?.engineer?.city;
+              value = formatCity(postalCode, city);
+              console.log(`  -> Custom engineerFormattedCity: ${value}`);
+            }
+            // --- Masonry Address Formatting ---
+            else if (mapping.field === 'masonryFormattedAddress') {
+              const address = projectData?.masonryCompany?.street;
+              value = formatAddress(address);
+              console.log(`  -> Custom masonryFormattedAddress: ${value}`);
+            }
+            // --- Masonry City with Postal Code Formatting ---
+            else if (mapping.field === 'masonryFormattedCity') {
+              const postalCode = projectData?.masonryCompany?.postalCode;
+              const city = projectData?.masonryCompany?.city;
+              value = formatCity(postalCode, city);
+              console.log(`  -> Custom masonryFormattedCity: ${value}`);
             }
             // Log the final custom value
             console.log(`  -> Source 'custom', Field '${mapping.field}', Final Value:`, value);
