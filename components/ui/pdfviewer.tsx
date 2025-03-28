@@ -90,6 +90,10 @@ export function PDFViewer({
       return {};
     }
 
+    // Extra debug logs for company objects
+    console.log('Engineer object:', projectData.engineer);
+    console.log('Masonry Company object:', projectData.masonryCompany);
+
     const mappedData: Record<string, string> = {};
     Object.entries(formDataMapping).forEach(([pdfField, mapping]) => {
       let value: any = '';
@@ -130,12 +134,14 @@ export function PDFViewer({
             }
             // --- Engineer Address Formatting ---
             else if (mapping.field === 'engineerFormattedAddress') {
+              console.log('Engineer street data:', projectData?.engineer?.street);
               const address = projectData?.engineer?.street;
               value = formatAddress(address);
               console.log(`  -> Custom engineerFormattedAddress: ${value}`);
             }
             // --- Engineer City with Postal Code Formatting ---
             else if (mapping.field === 'engineerFormattedCity') {
+              console.log('Engineer postal/city data:', projectData?.engineer?.postalCode, projectData?.engineer?.city);
               const postalCode = projectData?.engineer?.postalCode;
               const city = projectData?.engineer?.city;
               value = formatCity(postalCode, city);
@@ -143,12 +149,14 @@ export function PDFViewer({
             }
             // --- Masonry Address Formatting ---
             else if (mapping.field === 'masonryFormattedAddress') {
+              console.log('Masonry street data:', projectData?.masonryCompany?.street);
               const address = projectData?.masonryCompany?.street;
               value = formatAddress(address);
               console.log(`  -> Custom masonryFormattedAddress: ${value}`);
             }
             // --- Masonry City with Postal Code Formatting ---
             else if (mapping.field === 'masonryFormattedCity') {
+              console.log('Masonry postal/city data:', projectData?.masonryCompany?.postalCode, projectData?.masonryCompany?.city);
               const postalCode = projectData?.masonryCompany?.postalCode;
               const city = projectData?.masonryCompany?.city;
               value = formatCity(postalCode, city);
