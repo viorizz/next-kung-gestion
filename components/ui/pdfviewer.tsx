@@ -134,8 +134,9 @@ export function PDFViewer({
             }
             // --- Engineer Address Formatting ---
             else if (mapping.field === 'engineerFormattedAddress') {
-              console.log('Engineer street data:', projectData?.engineer?.street);
-              const address = projectData?.engineer?.street;
+              console.log('Engineer address data:', projectData?.engineer?.street, projectData?.engineer?.address);
+              // Try street first, then fall back to address field for compatibility
+              const address = projectData?.engineer?.street || projectData?.engineer?.address;
               value = formatAddress(address);
               console.log(`  -> Custom engineerFormattedAddress: ${value}`);
             }
@@ -149,8 +150,9 @@ export function PDFViewer({
             }
             // --- Masonry Address Formatting ---
             else if (mapping.field === 'masonryFormattedAddress') {
-              console.log('Masonry street data:', projectData?.masonryCompany?.street);
-              const address = projectData?.masonryCompany?.street;
+              console.log('Masonry address data:', projectData?.masonryCompany?.street, projectData?.masonryCompany?.address);
+              // Try street first, then fall back to address field for compatibility
+              const address = projectData?.masonryCompany?.street || projectData?.masonryCompany?.address;
               value = formatAddress(address);
               console.log(`  -> Custom masonryFormattedAddress: ${value}`);
             }

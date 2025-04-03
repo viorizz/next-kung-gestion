@@ -7,8 +7,10 @@ import { Project, ProjectFormData } from '@/types/project';
 interface Company {
   id: string;
   name: string;
-  address?: string;
+  address?: string;  // For backward compatibility
+  street?: string;   // Matches Company type in types/company.ts
   city?: string;
+  postalCode?: string; // Matches Company type in types/company.ts
   phone?: string;
   // Add any other fields your Company model might have (e.g., from Supabase)
   // Ensure these match the columns selected in your API route's getCompanyById
@@ -46,8 +48,10 @@ const mapDbProjectToEnrichedProject = (
     return {
       id: companyObj.id,
       name: companyObj.name, // Assuming 'name' field exists
-      address: companyObj.address ?? undefined, // Use actual column names
+      address: companyObj.street ?? undefined, // Map from street to address
+      street: companyObj.street ?? undefined, // Include street field
       city: companyObj.city ?? undefined, // Use actual column names
+      postalCode: companyObj.postal_code ?? companyObj.postalCode ?? undefined, // Support both formats
       phone: companyObj.phone ?? undefined, // Use actual column names
       // Map other company fields if they exist in the object
     };
