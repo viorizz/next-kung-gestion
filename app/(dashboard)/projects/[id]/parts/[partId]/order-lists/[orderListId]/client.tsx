@@ -598,6 +598,8 @@ export function OrderListDetailClient({
               onEditItem={handleEditItem}
               onDeleteItem={handleDeleteItem}
               readOnly={orderList?.status !== 'draft'}
+              manufacturer={orderList.manufacturer}
+              productType={orderList.type}
             />
           )}
         </TabsContent>

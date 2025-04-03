@@ -59,7 +59,11 @@ interface FieldMapping {
           field: 'productCode',
           transform: (orderList) => `COMAX-TYP-A-${orderList.listNumber}` 
         },
-        // Add more specific field mappings as needed
+        // Item-specific fields
+        'itemLength': { source: 'item', field: 'length' },
+        'itemWidth': { source: 'item', field: 'width' },
+        'itemMaterial': { source: 'item', field: 'material' },
+        'itemFinish': { source: 'item', field: 'finish' },
       },
       'comax-typ-b': {
         ...defaultMapping,
@@ -70,7 +74,10 @@ interface FieldMapping {
           field: 'productCode',
           transform: (orderList) => `COMAX-TYP-B-${orderList.listNumber}` 
         },
-        // Add more specific field mappings as needed
+        // Item-specific fields
+        'itemDiameter': { source: 'item', field: 'diameter' },
+        'itemThickness': { source: 'item', field: 'thickness' },
+        'itemColor': { source: 'item', field: 'color' },
       }
     },
     'debrunner': {
@@ -79,7 +86,11 @@ interface FieldMapping {
         // Console Acinox specific field mappings
         'productType': { source: 'orderList', field: 'type' },
         'steelGrade': { source: 'custom', field: 'steelGrade', transform: () => 'S355' },
-        // Add more specific field mappings as needed
+        // Item-specific fields
+        'itemModel': { source: 'item', field: 'model' },
+        'itemLoadCapacity': { source: 'item', field: 'loadCapacity' },
+        'itemMountingType': { source: 'item', field: 'mountingType' },
+        'itemCertification': { source: 'item', field: 'certification' },
       }
     },
     'halfen': {
@@ -88,7 +99,12 @@ interface FieldMapping {
         // Halfen HTA specific field mappings
         'profileType': { source: 'orderList', field: 'type' },
         'steelGrade': { source: 'custom', field: 'steelGrade', transform: () => 'HCR' },
-        // Add more specific field mappings as needed
+        // Item-specific fields
+        'itemLength': { source: 'item', field: 'length' },
+        'itemProfile': { source: 'item', field: 'profile' },
+        'itemCoating': { source: 'item', field: 'coating' },
+        'itemCorrosionClass': { source: 'item', field: 'corrosionClass' },
+        'itemConnectionType': { source: 'item', field: 'connectionType' },
       }
     },
     'hilti': {
@@ -96,7 +112,12 @@ interface FieldMapping {
         ...defaultMapping,
         // HIT Elements specific field mappings
         'productLine': { source: 'orderList', field: 'type' },
-        // Add more specific field mappings as needed
+        // Item-specific fields
+        'itemDiameter': { source: 'item', field: 'diameter' },
+        'itemAnchoring': { source: 'item', field: 'anchoring' },
+        'itemBaseType': { source: 'item', field: 'baseType' },
+        'itemConcreteDensity': { source: 'item', field: 'concreteDensity' },
+        'itemInstallMethod': { source: 'item', field: 'installMethod' },
       }
     }
   };
@@ -130,6 +151,9 @@ interface FieldMapping {
   ): Record<string, string> {
     const result: Record<string, string> = {};
     
+    // Create item field counter to handle multiple items
+    const itemFieldIndices: Record<string, number> = {};
+    
     Object.entries(mapping).forEach(([pdfField, { source, field, transform }]) => {
       let value: any = '';
       
@@ -145,9 +169,30 @@ interface FieldMapping {
           value = orderListData?.[field] ?? '';
           break;
         case 'item':
-          // Items are handled differently as they might be multiple
-          // For now, we'll just take the first item's value if available
-          value = itemsData[0]?.[field] ?? '';
+          // For item fields, handle them differently to support multiple items
+          if (itemsData.length > 0) {
+            // Get the item index for this field, or default to 0
+            const itemIndex = itemFieldIndices[field] || 0;
+            
+            // If we have an item at this index, get its value
+            if (itemIndex < itemsData.length) {
+              // Check if the field is in specifications or directly on the item
+              if (itemsData[itemIndex][field] !== undefined) {
+                value = itemsData[itemIndex][field];
+              } else if (itemsData[itemIndex].specifications?.[field] !== undefined) {
+                value = itemsData[itemIndex].specifications[field];
+              } else {
+                value = '';
+              }
+              
+              // Increment the index for the next occurrence of this field
+              itemFieldIndices[field] = itemIndex + 1;
+            } else {
+              value = '';
+            }
+          } else {
+            value = '';
+          }
           break;
         case 'custom':
           // Custom fields may have special handling
