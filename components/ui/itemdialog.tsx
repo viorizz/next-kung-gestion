@@ -40,12 +40,14 @@ export function ItemDialog({
   // Get dynamic fields from PDF mapping
   const [dynamicFields, setDynamicFields] = useState<Array<{pdfField: string, field: string}>>([]);
   
-  // Create refs for standard fields
-  const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({
-    article: null,
-    quantity: null,
-    type: null
-  });
+  // Create refs for standard fields - using React.RefCallback pattern
+  const articleRef = useRef<HTMLInputElement>(null);
+  const quantityRef = useRef<HTMLInputElement>(null);
+  const typeRef = useRef<HTMLInputElement>(null);
+  const specificationsRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Store dynamic field refs in a map
+  const dynamicFieldRefs = useRef<Record<string, HTMLInputElement | null>>({});
   
   // Create state for form data with a more flexible type
   const [formData, setFormData] = useState<Record<string, any>>({
@@ -72,10 +74,8 @@ export function ItemDialog({
         
         setDynamicFields(itemFields);
         
-        // Initialize refs for dynamic fields
-        itemFields.forEach(({ field }) => {
-          inputRefs.current[field] = null;
-        });
+        // Reset dynamic field refs when fields change
+        dynamicFieldRefs.current = {};
         
       } catch (error) {
         console.error('Error loading dynamic fields:', error);
@@ -139,8 +139,8 @@ export function ItemDialog({
     if (open) {
       // Small delay to ensure the dialog is fully rendered
       setTimeout(() => {
-        if (inputRefs.current.article) {
-          (inputRefs.current.article as HTMLInputElement).focus();
+        if (articleRef.current) {
+          articleRef.current.focus();
         }
       }, 100);
     }
@@ -165,6 +165,21 @@ export function ItemDialog({
     return [...standardFields, ...specFields];
   };
 
+  // Focus a field by name
+  const focusField = (fieldName: string) => {
+    if (fieldName === 'article' && articleRef.current) {
+      articleRef.current.focus();
+    } else if (fieldName === 'quantity' && quantityRef.current) {
+      quantityRef.current.focus();
+    } else if (fieldName === 'type' && typeRef.current) {
+      typeRef.current.focus();
+    } else if (fieldName === 'specifications' && specificationsRef.current) {
+      specificationsRef.current.focus();
+    } else if (dynamicFieldRefs.current[fieldName]) {
+      dynamicFieldRefs.current[fieldName]?.focus();
+    }
+  };
+
   // Handle tab and enter key to move between fields
   const handleKeyDown = (e: React.KeyboardEvent, currentFieldName: string) => {
     if (e.key === 'Enter' || e.key === 'Tab') {
@@ -181,11 +196,9 @@ export function ItemDialog({
         : (currentIndex + 1) % allFields.length; // Go forwards with Tab
 
       const nextField = allFields[nextIndex];
-
+      
       // Focus the next field
-      if (inputRefs.current[nextField]) {
-        inputRefs.current[nextField]?.focus();
-      }
+      focusField(nextField);
     }
   };
 
@@ -224,6 +237,11 @@ export function ItemDialog({
     }
   };
 
+  // Create a ref callback for dynamic fields
+  const setDynamicFieldRef = (fieldName: string) => (el: HTMLInputElement | null) => {
+    dynamicFieldRefs.current[fieldName] = el;
+  };
+
   return (
     <Dialog
       open={open}
@@ -246,7 +264,7 @@ export function ItemDialog({
               value={formData.article || ''}
               onChange={handleChange}
               onKeyDown={(e) => handleKeyDown(e, 'article')}
-              ref={(el) => (inputRefs.current.article = el)}
+              ref={articleRef}
               required
               placeholder="e.g. HTA-40/22"
             />
@@ -262,7 +280,7 @@ export function ItemDialog({
               value={formData.quantity || 1}
               onChange={handleChange}
               onKeyDown={(e) => handleKeyDown(e, 'quantity')}
-              ref={(el) => (inputRefs.current.quantity = el)}
+              ref={quantityRef}
               required
             />
           </div>
@@ -275,7 +293,7 @@ export function ItemDialog({
               value={formData.type || ''}
               onChange={handleChange}
               onKeyDown={(e) => handleKeyDown(e, 'type')}
-              ref={(el) => (inputRefs.current.type = el)}
+              ref={typeRef}
               required
               placeholder="e.g. Halfen HTA Profile"
             />
@@ -300,7 +318,7 @@ export function ItemDialog({
                     value={formData[field] || ''}
                     onChange={handleChange}
                     onKeyDown={(e) => handleKeyDown(e, field)}
-                    ref={(el) => (inputRefs.current[field] = el)}
+                    ref={setDynamicFieldRef(field)}
                     placeholder={`Enter ${pdfField}`}
                   />
                 </div>
@@ -326,7 +344,7 @@ export function ItemDialog({
                     setFormData(prev => ({ ...prev, specifications: { text: e.target.value } }));
                   }
                 }}
-                ref={(el) => (inputRefs.current.specifications = el)}
+                ref={specificationsRef}
                 placeholder="Enter additional specifications for this item"
                 rows={5}
               />
