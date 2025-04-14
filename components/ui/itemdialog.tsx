@@ -47,7 +47,7 @@ export function ItemDialog({
     type: null
   });
   
-  // Create state for form data
+  // Create state for form data with a more flexible type
   const [formData, setFormData] = useState<Record<string, any>>({
     article: '',
     quantity: 1,
@@ -87,17 +87,20 @@ export function ItemDialog({
   useEffect(() => {
     if (item) {
       // Initialize form with item data
-      const initialData = {
+      const initialData: Record<string, any> = {
         article: item.article,
         quantity: item.quantity,
         type: item.type,
+        specifications: {}  // Start with empty specifications
       };
       
       // Add any specification fields that match our dynamic fields
       if (item.specifications && typeof item.specifications === 'object') {
         dynamicFields.forEach(({ field }) => {
-          if (item.specifications[field] !== undefined) {
-            initialData[field] = item.specifications[field];
+          // Check if the field exists in specifications
+          if (field in item.specifications) {
+            // Use type assertion to tell TypeScript this is a valid access
+            initialData[field] = item.specifications[field as keyof typeof item.specifications];
           }
         });
       }
@@ -105,7 +108,9 @@ export function ItemDialog({
       // Keep any other specifications that don't match dynamic fields
       const otherSpecs = { ...item.specifications };
       dynamicFields.forEach(({ field }) => {
-        delete otherSpecs[field];
+        if (otherSpecs && typeof otherSpecs === 'object') {
+          delete otherSpecs[field];
+        }
       });
       
       initialData.specifications = otherSpecs;
@@ -113,7 +118,7 @@ export function ItemDialog({
       setFormData(initialData);
     } else if (open) {
       // Initialize form for new item
-      const initialData = {
+      const initialData: Record<string, any> = {
         article: '',
         quantity: 1,
         type: productType,
