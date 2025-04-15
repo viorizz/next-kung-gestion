@@ -14,7 +14,7 @@ export function Hero() {
         className="absolute inset-0 z-0 bg-cover bg-center"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(30,30,30,0.85),rgba(255,193,7,0.15)), url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1500&q=80')",
+            "linear-gradient(rgba(30,30,30,0.85),rgba(255,193,7,0.15)), url('https://9bvgfxcsp3.ufs.sh/f/rUmIMPO1CaARHbhFlxWWZaJPu21AMYqUcVTstXOyhr69kwKg')",
         }}
         aria-hidden="true"
       />
