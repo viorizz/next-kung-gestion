@@ -1,373 +1,58 @@
-// components/ui/itemdialog.tsx
-'use client';
+// Modifiez votre fichier components/ui/itemdialog.tsx existant
 
-import { useState, useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Item } from '@/types/item';
-import { getFormMapping } from '@/lib/pdf/formMapping';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ComaxTypeAForm } from '@/components/forms/ComaxTypeAForm';
+import { OrderFormType, Article } from '@/types/item';
 
 interface ItemDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (item: Item | Partial<Item>) => void;
-  item?: Item;
-  orderListId: string;
-  manufacturer: string;
-  productType: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onArticleAdded: (article: Article) => void;
+  orderFormType?: OrderFormType; // Nouveau prop pour déterminer le type de formulaire
 }
 
-export function ItemDialog({
-  open,
-  onOpenChange,
-  onSave,
-  item,
-  orderListId,
-  manufacturer,
-  productType
-}: ItemDialogProps) {
-  const isEditing = !!item;
-  
-  // Get dynamic fields from PDF mapping
-  const [dynamicFields, setDynamicFields] = useState<Array<{pdfField: string, field: string}>>([]);
-  
-  // Create refs for standard fields - using React.RefCallback pattern
-  const articleRef = useRef<HTMLInputElement>(null);
-  const quantityRef = useRef<HTMLInputElement>(null);
-  const typeRef = useRef<HTMLInputElement>(null);
-  const specificationsRef = useRef<HTMLTextAreaElement>(null);
-  
-  // Store dynamic field refs in a map
-  const dynamicFieldRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  
-  // Create state for form data with a more flexible type
-  const [formData, setFormData] = useState<Record<string, any>>({
-    article: '',
-    quantity: 1,
-    type: '',
-    specifications: {}
-  });
+export const ItemDialog: React.FC<ItemDialogProps> = ({
+  isOpen,
+  onClose,
+  onArticleAdded,
+  orderFormType = 'STANDARD', // Valeur par défaut
+}) => {
+  const [isFormValid, setIsFormValid] = useState(false);
 
-  // Load dynamic fields based on manufacturer and product type
-  useEffect(() => {
-    if (manufacturer && productType) {
-      try {
-        // Get mapping for this manufacturer and product type
-        const mapping = getFormMapping(manufacturer, productType);
-        
-        // Extract item-specific fields
-        const itemFields = Object.entries(mapping)
-          .filter(([_, config]) => config.source === 'item')
-          .map(([pdfField, config]) => ({
-            pdfField,
-            field: config.field
-          }));
-        
-        setDynamicFields(itemFields);
-        
-        // Reset dynamic field refs when fields change
-        dynamicFieldRefs.current = {};
-        
-      } catch (error) {
-        console.error('Error loading dynamic fields:', error);
-      }
-    }
-  }, [manufacturer, productType]);
-
-  // Reset form when dialog opens/closes or item changes
-  useEffect(() => {
-    if (item) {
-      // Initialize form with item data
-      const initialData: Record<string, any> = {
-        article: item.article,
-        quantity: item.quantity,
-        type: item.type,
-        specifications: {}  // Start with empty specifications
-      };
-      
-      // Add any specification fields that match our dynamic fields
-      if (item.specifications && typeof item.specifications === 'object') {
-        dynamicFields.forEach(({ field }) => {
-          // Check if the field exists in specifications
-          if (field in item.specifications) {
-            // Use type assertion to tell TypeScript this is a valid access
-            initialData[field] = item.specifications[field as keyof typeof item.specifications];
-          }
-        });
-      }
-      
-      // Keep any other specifications that don't match dynamic fields
-      const otherSpecs = { ...item.specifications };
-      dynamicFields.forEach(({ field }) => {
-        if (otherSpecs && typeof otherSpecs === 'object') {
-          delete otherSpecs[field];
-        }
-      });
-      
-      initialData.specifications = otherSpecs;
-      
-      setFormData(initialData);
-    } else if (open) {
-      // Initialize form for new item
-      const initialData: Record<string, any> = {
-        article: '',
-        quantity: 1,
-        type: productType,
-        specifications: {}
-      };
-      
-      // Initialize dynamic fields with empty values
-      dynamicFields.forEach(({ field }) => {
-        initialData[field] = '';
-      });
-      
-      setFormData(initialData);
-    }
-  }, [item, open, productType, dynamicFields]);
-
-  // Focus the first field when the dialog opens
-  useEffect(() => {
-    if (open) {
-      // Small delay to ensure the dialog is fully rendered
-      setTimeout(() => {
-        if (articleRef.current) {
-          articleRef.current.focus();
-        }
-      }, 100);
-    }
-  }, [open]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    
-    if (name === 'quantity') {
-      // Ensure quantity is always a number
-      const numValue = parseInt(value, 10) || 1;
-      setFormData((prev) => ({ ...prev, [name]: numValue }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+  const handleArticleCreate = (article: Article) => {
+    onArticleAdded(article);
+    onClose();
   };
 
-  // Generate a list of all field names for keyboard navigation
-  const getAllFields = () => {
-    const standardFields = ['article', 'quantity', 'type'];
-    const specFields = dynamicFields.map(({ field }) => field);
-    return [...standardFields, ...specFields];
-  };
-
-  // Focus a field by name
-  const focusField = (fieldName: string) => {
-    if (fieldName === 'article' && articleRef.current) {
-      articleRef.current.focus();
-    } else if (fieldName === 'quantity' && quantityRef.current) {
-      quantityRef.current.focus();
-    } else if (fieldName === 'type' && typeRef.current) {
-      typeRef.current.focus();
-    } else if (fieldName === 'specifications' && specificationsRef.current) {
-      specificationsRef.current.focus();
-    } else if (dynamicFieldRefs.current[fieldName]) {
-      dynamicFieldRefs.current[fieldName]?.focus();
+  const renderForm = () => {
+    switch (orderFormType) {
+      case 'COMAX_TYPE_A':
+        return (
+          <ComaxTypeAForm
+            onValidationChange={setIsFormValid}
+            onArticleCreate={handleArticleCreate}
+            onCancel={onClose}
+          />
+        );
+      case 'STANDARD':
+      default:
+        // Garder votre formulaire existant
+        return <YourExistingStandardForm />;
     }
-  };
-
-  // Handle tab and enter key to move between fields
-  const handleKeyDown = (e: React.KeyboardEvent, currentFieldName: string) => {
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault(); // Prevent default tab behavior
-
-      const allFields = getAllFields();
-      
-      // Find the current field index
-      const currentIndex = allFields.indexOf(currentFieldName);
-
-      // Determine the next field index
-      const nextIndex = e.shiftKey
-        ? (currentIndex - 1 + allFields.length) % allFields.length // Go backwards with Shift+Tab
-        : (currentIndex + 1) % allFields.length; // Go forwards with Tab
-
-      const nextField = allFields[nextIndex];
-      
-      // Focus the next field
-      focusField(nextField);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submitted with data:', formData);
-
-    // Extract dynamic field values into specifications
-    const specifications: Record<string, any> = { ...formData.specifications };
-    dynamicFields.forEach(({ field }) => {
-      if (formData[field] !== undefined) {
-        specifications[field] = formData[field];
-        delete formData[field]; // Remove from root to avoid duplication
-      }
-    });
-
-    // Construct the final form data
-    const standardFormData = {
-      article: formData.article,
-      quantity: formData.quantity,
-      type: formData.type,
-      specifications
-    };
-
-    // Add the orderListId to the form data if creating a new item
-    const completeFormData = isEditing
-      ? { ...standardFormData }
-      : { ...standardFormData, orderListId };
-
-    if (isEditing && item) {
-      console.log('Updating item with ID:', item.id);
-      onSave({ id: item.id, ...completeFormData });
-    } else {
-      console.log('Creating new item for order list ID:', orderListId);
-      onSave(completeFormData);
-    }
-  };
-
-  // Create a ref callback for dynamic fields
-  const setDynamicFieldRef = (fieldName: string) => (el: HTMLInputElement | null) => {
-    dynamicFieldRefs.current[fieldName] = el;
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? `Edit Item` : 'Add New Item'}
+            Ajouter un article
+            {orderFormType === 'COMAX_TYPE_A' && ' - COMAX Type A'}
           </DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {/* Standard fields */}
-          <div className="space-y-2">
-            <Label htmlFor="article">Article*</Label>
-            <Input
-              id="article"
-              name="article"
-              value={formData.article || ''}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, 'article')}
-              ref={articleRef}
-              required
-              placeholder="e.g. HTA-40/22"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity*</Label>
-            <Input
-              id="quantity"
-              name="quantity"
-              type="number"
-              min="1"
-              value={formData.quantity || 1}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, 'quantity')}
-              ref={quantityRef}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="type">Type*</Label>
-            <Input
-              id="type"
-              name="type"
-              value={formData.type || ''}
-              onChange={handleChange}
-              onKeyDown={(e) => handleKeyDown(e, 'type')}
-              ref={typeRef}
-              required
-              placeholder="e.g. Halfen HTA Profile"
-            />
-          </div>
-
-          {/* Dynamic fields from PDF mapping */}
-          {dynamicFields.length > 0 && (
-            <>
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-medium mb-2">Product-Specific Fields</h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  These fields are specific to {manufacturer} {productType} orders.
-                </p>
-              </div>
-              
-              {dynamicFields.map(({ pdfField, field }) => (
-                <div key={field} className="space-y-2">
-                  <Label htmlFor={field}>{pdfField}</Label>
-                  <Input
-                    id={field}
-                    name={field}
-                    value={formData[field] || ''}
-                    onChange={handleChange}
-                    onKeyDown={(e) => handleKeyDown(e, field)}
-                    ref={setDynamicFieldRef(field)}
-                    placeholder={`Enter ${pdfField}`}
-                  />
-                </div>
-              ))}
-            </>
-          )}
-
-          {/* Add remaining specifications field for any other data */}
-          {dynamicFields.length === 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="specifications">Specifications</Label>
-              <Textarea
-                id="specifications"
-                name="specifications"
-                value={typeof formData.specifications === 'object' 
-                  ? JSON.stringify(formData.specifications, null, 2)
-                  : String(formData.specifications || '')}
-                onChange={(e) => {
-                  try {
-                    const jsonValue = JSON.parse(e.target.value);
-                    setFormData(prev => ({ ...prev, specifications: jsonValue }));
-                  } catch {
-                    setFormData(prev => ({ ...prev, specifications: { text: e.target.value } }));
-                  }
-                }}
-                ref={specificationsRef}
-                placeholder="Enter additional specifications for this item"
-                rows={5}
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter specifications as plain text, or as a JSON object for structured data.
-              </p>
-            </div>
-          )}
-
-          <DialogFooter className="pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">
-              {isEditing ? 'Save Changes' : 'Add Item'}
-            </Button>
-          </DialogFooter>
-        </form>
+        {renderForm()}
       </DialogContent>
     </Dialog>
   );
-}
+};

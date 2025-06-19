@@ -43,6 +43,8 @@ import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
 import { PdfTemplate } from '@/types/pdfTemplate';
+import { ItemDialog } from '@/components/ui/itemdialog';
+import { OrderFormType } from '@/types/item';
 
 interface OrderListDetailClientProps {
   projectId: string;
@@ -675,3 +677,37 @@ export function OrderListDetailClient({
     </div>
   );
 }
+
+export const OrderListComponent = () => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentFormType, setCurrentFormType] = useState<OrderFormType>('STANDARD');
+
+  // Détecter le type de feuille de commande basé sur tes données existantes
+  const handleAddItem = () => {
+    // Logic pour déterminer le type selon ta feuille de commande actuelle
+    const formType: OrderFormType = determineFormType(); // Ta logique existante
+    setCurrentFormType(formType);
+    setIsDialogOpen(true);
+  };
+
+  const handleArticleAdded = (article: Article) => {
+    // Ajouter l'article à ta liste/base de données
+    addArticleToOrder(article);
+  };
+
+  return (
+    <div>
+      {/* Ton interface existante */}
+      <button onClick={handleAddItem}>
+        Ajouter un article
+      </button>
+
+      <ItemDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onArticleAdded={handleArticleAdded}
+        orderFormType={currentFormType}
+      />
+    </div>
+  );
+};
