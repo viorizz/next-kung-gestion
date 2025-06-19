@@ -31,9 +31,14 @@ import Link from 'next/link';
 interface Company {
   id: string;
   name: string;
-  address?: string;
+  street?: string;        // Add missing street field
+  address?: string;       // Keep for backward compatibility
+  postalCode?: string;    // Add missing postalCode field
   city?: string;
+  country?: string;       // Add missing country field
   phone?: string;
+  email?: string;         // Add missing email field
+  type?: string;          // Add missing type field
 }
 
 interface EnrichedProjectData {
