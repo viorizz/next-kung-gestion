@@ -1,3 +1,6 @@
+// types/project.ts
+import { Company } from './company';
+
 export type Project = {
   id: string;
   projectNumber: string;
@@ -25,6 +28,23 @@ export type Project = {
   createdAt: string;
   updatedAt: string;
 };
+
+// Add the EnrichedProjectData interface here
+export interface EnrichedProjectData {
+  id: string;
+  name: string;
+  projectNumber?: string;
+  address: string;
+  designer: string;
+  projectManager: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  engineer: Company | null;
+  masonryCompany: Company | null;
+  architect: Company | null;
+  owner: Company | null;
+}
 
 export type ProjectFormData = Omit<Project, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 
   'masonryCompanyObj' | 'architectObj' | 'engineerObj' | 'ownerObj'>;
