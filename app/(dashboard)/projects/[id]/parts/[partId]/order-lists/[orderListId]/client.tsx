@@ -10,7 +10,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription, // Keep even if not used directly in this snippet
+  CardDescription,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,10 +24,10 @@ import {
   Package,
   ArrowLeft,
   FileText,
-  Download, // Keep even if not used directly in this snippet
-  Briefcase, // Added Icon
-  Phone, // Added Icon
-  MapPin, // Added Icon
+  Download,
+  Briefcase,
+  Phone,
+  MapPin,
 } from 'lucide-react';
 import { orderListService } from '@/lib/services/orderListService';
 import { itemService } from '@/lib/services/itemService';
@@ -43,8 +43,6 @@ import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
 import { PdfTemplate } from '@/types/pdfTemplate';
-import { ItemDialog } from '@/components/ui/itemdialog';
-import { OrderFormType } from '@/types/item';
 
 interface OrderListDetailClientProps {
   projectId: string;
@@ -54,8 +52,7 @@ interface OrderListDetailClientProps {
 
 type FormMapping = Record<string, { source: string; field: string }>;
 
-// --- CRITICAL POINT ---
-// Ensure this interface EXACTLY matches the structure
+// CRITICAL POINT: Ensure this interface EXACTLY matches the structure
 // returned by your `projectService.getProject` endpoint,
 // including the nested company objects and their fields.
 interface EnrichedProjectData {
@@ -88,8 +85,8 @@ export function OrderListDetailClient({
 }: OrderListDetailClientProps) {
   const { user, isLoaded } = useUser();
   // Use the specific type for project state
-  const [project, setProject] = useState<EnrichedProjectData | null>(null); // MODIFIED TYPE
-  const [projectPart, setProjectPart] = useState<any>(null); // Consider typing this too if possible
+  const [project, setProject] = useState<EnrichedProjectData | null>(null);
+  const [projectPart, setProjectPart] = useState<any>(null);
   const [orderList, setOrderList] = useState<OrderList | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,8 +107,8 @@ export function OrderListDetailClient({
     if (!user) return;
     setIsLoading(true);
     setPdfTemplate(null);
-    setProject(null); // Reset project state on fetch
-    setProjectPart(null); // Reset part state on fetch
+    setProject(null);
+    setProjectPart(null);
     try {
       const orderListData = await orderListService.getOrderList(orderListId);
       setOrderList(orderListData);
@@ -119,18 +116,13 @@ export function OrderListDetailClient({
       const itemsData = await itemService.getItems(orderListId);
       setItems(itemsData);
 
-      // Fetch project part first to get projectId if needed (though it's passed as prop)
-      // Ensure partId is valid before proceeding
       const partData = await projectPartService.getProjectPart(partId);
       setProjectPart(partData);
 
-      // --- FETCH ENRICHED PROJECT DATA ---
-      // This service call MUST return data matching `EnrichedProjectData`
       const enrichedProjectData: EnrichedProjectData =
-        await projectService.getProject(partData.projectId); // Use partData.projectId
-      setProject(enrichedProjectData); // Set the enriched data
+        await projectService.getProject(partData.projectId);
+      setProject(enrichedProjectData);
 
-      // Fetch template based on order list details
       if (orderListData.manufacturer && orderListData.type) {
         const template =
           await pdfTemplateService.getTemplateByManufacturerAndType(
@@ -146,18 +138,37 @@ export function OrderListDetailClient({
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('An error occurred while loading data');
-      // Ensure states are reset on error
       setPdfTemplate(null);
       setProject(null);
       setProjectPart(null);
-      setOrderList(null); // Also reset orderList if fetch fails critically
+      setOrderList(null);
       setItems([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- formMapping and pdfUrl derivation (using useMemo) ---
+  // Helper function to access nested properties using dot notation
+  const getNestedProperty = (obj: any, path: string): any => {
+    if (!obj || !path) return '';
+    return path.split('.').reduce((prev, curr) => 
+      prev && prev[curr] !== undefined ? prev[curr] : null, obj);
+  };
+  
+  // Helper function to format address fields
+  const formatAddress = (address: string | null | undefined): string => {
+    return address || '';
+  };
+  
+  // Helper function to format city with postal code
+  const formatCity = (postalCode: string | null | undefined, city: string | null | undefined): string => {
+    if (!postalCode && !city) return '';
+    if (!postalCode) return city || '';
+    if (!city) return postalCode || '';
+    return `CH-${postalCode} ${city}`;
+  };
+
+  // formMapping and pdfUrl derivation (using useMemo)
   const formMapping: FormMapping = useMemo(() => {
     if (!pdfTemplate?.fieldMapping) return {};
     try {
@@ -181,9 +192,102 @@ export function OrderListDetailClient({
   const pdfUrl = pdfTemplate?.pdfUrl || null;
   const showPdfViewer = !!pdfUrl;
 
-  // --- Handlers (handleUpdateOrderList, handleAddItem, etc.) ---
-  // These should generally work fine unless they incorrectly assume
-  // structure within the `project` object without checking for nulls.
+  // formData calculation
+  const formData = useMemo(() => {
+    console.log('[PDFViewer useMemo] Calculating formData. Inputs:', { 
+      project, 
+      projectPart, 
+      orderList,
+      formMapping 
+    });
+
+    if (!project || !projectPart || !orderList) {
+      console.warn('[PDFViewer] Missing data for form mapping');
+      return {};
+    }
+
+    console.log('Engineer object:', project.engineer);
+    console.log('Masonry Company object:', project.masonryCompany);
+
+    const mappedData: Record<string, string> = {};
+    Object.entries(formMapping).forEach(([pdfField, mapping]) => {
+      let value: any = '';
+      try {
+        console.log(`[PDFViewer] Processing field mapping: ${pdfField} -> ${mapping.source}.${mapping.field}`);
+
+        switch (mapping.source) {
+          case 'project':
+            value = getNestedProperty(project, mapping.field);
+            console.log(`  -> Source 'project', Field '${mapping.field}', Value:`, value);
+            break;
+          case 'part':
+            value = getNestedProperty(projectPart, mapping.field);
+            console.log(`  -> Source 'part', Field '${mapping.field}', Value:`, value);
+            break;
+          case 'orderList':
+            value = getNestedProperty(orderList, mapping.field);
+            console.log(`  -> Source 'orderList', Field '${mapping.field}', Value:`, value);
+            break;
+          case 'custom':
+            if (mapping.field === 'currentDate') {
+              value = new Date().toLocaleDateString();
+            }
+            else if (mapping.field === 'compositePartNumber') {
+              const projNum = project?.projectNumber ?? '??';
+              const partNum = projectPart?.partNumber ?? '??';
+              value = `${projNum}-${partNum}`;
+              console.log(`  -> Custom compositePartNumber: ${projNum}-${partNum}`);
+            }
+            else if (mapping.field === 'compositeOrderListNumber') {
+              const projNum = project?.projectNumber ?? '??';
+              const partNum = projectPart?.partNumber ?? '??';
+              const listNum = orderList?.listNumber ?? '??';
+              value = `${projNum}-${partNum}.${listNum}`;
+              console.log(`  -> Custom compositeOrderListNumber: ${projNum}-${partNum}.${listNum}`);
+            }
+            else if (mapping.field === 'engineerFormattedAddress') {
+              console.log('Engineer address data:', project?.engineer?.street, project?.engineer?.address);
+              const address = project?.engineer?.street || project?.engineer?.address;
+              value = formatAddress(address);
+              console.log(`  -> Custom engineerFormattedAddress: ${value}`);
+            }
+            else if (mapping.field === 'engineerFormattedCity') {
+              console.log('Engineer postal/city data:', project?.engineer?.postalCode, project?.engineer?.city);
+              const postalCode = project?.engineer?.postalCode;
+              const city = project?.engineer?.city;
+              value = formatCity(postalCode, city);
+              console.log(`  -> Custom engineerFormattedCity: ${value}`);
+            }
+            else if (mapping.field === 'masonryFormattedAddress') {
+              console.log('Masonry address data:', project?.masonryCompany?.street, project?.masonryCompany?.address);
+              const address = project?.masonryCompany?.street || project?.masonryCompany?.address;
+              value = formatAddress(address);
+              console.log(`  -> Custom masonryFormattedAddress: ${value}`);
+            }
+            else if (mapping.field === 'masonryFormattedCity') {
+              console.log('Masonry postal/city data:', project?.masonryCompany?.postalCode, project?.masonryCompany?.city);
+              const postalCode = project?.masonryCompany?.postalCode;
+              const city = project?.masonryCompany?.city;
+              value = formatCity(postalCode, city);
+              console.log(`  -> Custom masonryFormattedCity: ${value}`);
+            }
+            console.log(`  -> Source 'custom', Field '${mapping.field}', Final Value:`, value);
+            break;
+          default:
+            console.warn(`[PDFViewer] Unknown source type: ${mapping.source}`);
+            break;
+        }
+        mappedData[pdfField] =
+          value !== null && value !== undefined ? String(value) : '';
+      } catch (e) {
+        console.error(`[PDFViewer] Error processing field mapping for ${pdfField}:`, e);
+        mappedData[pdfField] = '';
+      }
+    });
+    console.log('[PDFViewer useMemo] Calculated formData:', mappedData);
+    return mappedData;
+  }, [project, projectPart, orderList, formMapping]);
+
   const handleUpdateOrderList = async (
     updatedOrderList: Partial<OrderList>,
   ) => {
@@ -193,13 +297,12 @@ export function OrderListDetailClient({
         orderListId,
         updatedOrderList,
       );
-      // Refetch ALL data if manufacturer/type changes, as template might change
       if (
         updatedOrderList.manufacturer !== orderList.manufacturer ||
         updatedOrderList.type !== orderList.type
       ) {
         toast.info('Manufacturer/Type changed, reloading data...');
-        fetchData(); // Refetch everything
+        fetchData();
       } else {
         setOrderList(result);
         toast.success('Order list updated successfully');
@@ -267,7 +370,7 @@ export function OrderListDetailClient({
       return;
     try {
       const result = await orderListService.submitOrderList(orderListId);
-      setOrderList(result); // Update status locally
+      setOrderList(result);
       toast.success('Order list submitted successfully');
     } catch (error) {
       console.error('Error submitting order list:', error);
@@ -275,7 +378,6 @@ export function OrderListDetailClient({
     }
   };
 
-  // --- Helper functions ---
   const formatDate = (dateString: string | null | undefined | Date): string => {
     if (!dateString) return 'N/A';
     try {
@@ -300,7 +402,6 @@ export function OrderListDetailClient({
     }
   };
 
-  // --- Render logic ---
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -309,7 +410,6 @@ export function OrderListDetailClient({
     );
   }
 
-  // Ensure orderList is checked *after* loading and *before* accessing its properties
   if (!orderList) {
     return (
       <div className="p-6">
@@ -317,7 +417,6 @@ export function OrderListDetailClient({
           <p className="text-muted-foreground mb-4">
             The requested order list was not found or could not be loaded.
           </p>
-          {/* Provide relevant back links */}
           <Link href={`/projects/${projectId}/parts/${partId}`}>
             <Button variant="outline" className="mt-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -329,7 +428,6 @@ export function OrderListDetailClient({
     );
   }
 
-  // Now it's safe to assume orderList is not null
   return (
     <div className="p-6">
       {/* Breadcrumb */}
@@ -343,14 +441,14 @@ export function OrderListDetailClient({
         </Link>{' '}
         {' / '}
         <Link href={`/projects/${projectId}`} className="hover:underline">
-          {project?.name || 'Project'} {/* Safe access */}
+          {project?.name || 'Project'}
         </Link>{' '}
         {' / '}
         <Link
           href={`/projects/${projectId}/parts/${partId}`}
           className="hover:underline"
         >
-          {projectPart?.name || 'Part'} {/* Safe access */}
+          {projectPart?.name || 'Part'}
         </Link>{' '}
         {' / '}
         Order List {orderList.listNumber}
@@ -386,7 +484,7 @@ export function OrderListDetailClient({
         </div>
       </div>
 
-      {/* Order List Details Cards - MODIFIED LAYOUT AND CONTENT */}
+      {/* Order List Details Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {/* Order List Info Card */}
         <Card>
@@ -438,7 +536,7 @@ export function OrderListDetailClient({
               <span className="text-muted-foreground">
                 Project:{' '}
                 <span className="font-medium text-foreground">
-                  {project?.name || 'N/A'} {/* Safe access */}
+                  {project?.name || 'N/A'}
                 </span>
               </span>
             </div>
@@ -447,7 +545,7 @@ export function OrderListDetailClient({
               <span className="text-muted-foreground">
                 Part:{' '}
                 <span className="font-medium text-foreground">
-                  {projectPart?.name || 'N/A'} {/* Safe access */}
+                  {projectPart?.name || 'N/A'}
                 </span>
               </span>
             </div>
@@ -472,13 +570,12 @@ export function OrderListDetailClient({
           </CardContent>
         </Card>
 
-        {/* Companies Info Card - ADDED/MODIFIED */}
+        {/* Companies Info Card */}
         <Card>
           <CardHeader>
             <CardTitle>Company Contacts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Engineer Details - Uses optional chaining */}
             {project?.engineer ? (
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -513,11 +610,8 @@ export function OrderListDetailClient({
                 </span>
               </div>
             )}
-            {/* Masonry Details - Uses optional chaining */}
             {project?.masonryCompany ? (
               <div className="space-y-1 pt-3 border-t mt-3">
-                {' '}
-                {/* Added separator */}
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
@@ -614,7 +708,7 @@ export function OrderListDetailClient({
           {showPdfViewer && pdfUrl ? (
             <PDFViewer
               pdfUrl={pdfUrl}
-              projectData={project} // Pass enriched project data
+              projectData={project}
               partData={projectPart}
               orderListData={orderList}
               isReadOnly={orderList?.status !== 'draft'}
@@ -677,37 +771,3 @@ export function OrderListDetailClient({
     </div>
   );
 }
-
-export const OrderListComponent = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentFormType, setCurrentFormType] = useState<OrderFormType>('STANDARD');
-
-  // Détecter le type de feuille de commande basé sur tes données existantes
-  const handleAddItem = () => {
-    // Logic pour déterminer le type selon ta feuille de commande actuelle
-    const formType: OrderFormType = determineFormType(); // Ta logique existante
-    setCurrentFormType(formType);
-    setIsDialogOpen(true);
-  };
-
-  const handleArticleAdded = (article: Article) => {
-    // Ajouter l'article à ta liste/base de données
-    addArticleToOrder(article);
-  };
-
-  return (
-    <div>
-      {/* Ton interface existante */}
-      <button onClick={handleAddItem}>
-        Ajouter un article
-      </button>
-
-      <ItemDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onArticleAdded={handleArticleAdded}
-        orderFormType={currentFormType}
-      />
-    </div>
-  );
-};
