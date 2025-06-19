@@ -43,6 +43,7 @@ import { projectService } from '@/lib/services/projectService';
 import { projectPartService } from '@/lib/services/projectPartService';
 import pdfTemplateService from '@/lib/services/pdfTemplateService';
 import { PdfTemplate } from '@/types/pdfTemplate';
+import { Company } from '@/types/company'; // Import the proper Company type
 
 interface OrderListDetailClientProps {
   projectId: string;
@@ -52,30 +53,23 @@ interface OrderListDetailClientProps {
 
 type FormMapping = Record<string, { source: string; field: string }>;
 
-// CRITICAL POINT: Ensure this interface EXACTLY matches the structure
-// returned by your `projectService.getProject` endpoint,
-// including the nested company objects and their fields.
+// Updated interface to match the structure returned by projectService.getProject
+// and use the imported Company type
 interface EnrichedProjectData {
   id: string;
   name: string;
   projectNumber?: string;
-  // ... other existing project fields you need ...
-  engineer: {
-    id: string;
-    name: string;
-    address?: string;
-    city?: string;
-    phone?: string;
-    // ... any other company fields you need ...
-  } | null; // Can be null if no engineer linked
-  masonryCompany: {
-    id: string;
-    name: string;
-    address?: string;
-    city?: string;
-    phone?: string;
-    // ... any other company fields you need ...
-  } | null; // Can be null if no masonry company linked
+  address: string;
+  designer: string;
+  projectManager: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  // Updated to use the proper Company type
+  engineer: Company | null;
+  masonryCompany: Company | null;
+  architect: Company | null;
+  owner: Company | null;
 }
 
 export function OrderListDetailClient({
@@ -288,6 +282,7 @@ export function OrderListDetailClient({
     return mappedData;
   }, [project, projectPart, orderList, formMapping]);
 
+  // Rest of the component methods remain the same...
   const handleUpdateOrderList = async (
     updatedOrderList: Partial<OrderList>,
   ) => {
@@ -584,11 +579,11 @@ export function OrderListDetailClient({
                     Engineer: {project.engineer.name}
                   </span>
                 </div>
-                {project.engineer.address && (
+                {(project.engineer.street || project.engineer.address) && (
                   <div className="flex items-center gap-2 ml-6">
                     <MapPin className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
-                      {project.engineer.address}
+                      {project.engineer.street || project.engineer.address}
                       {project.engineer.city ? `, ${project.engineer.city}` : ''}
                     </span>
                   </div>
@@ -618,11 +613,11 @@ export function OrderListDetailClient({
                     Masonry: {project.masonryCompany.name}
                   </span>
                 </div>
-                {project.masonryCompany.address && (
+                {(project.masonryCompany.street || project.masonryCompany.address) && (
                   <div className="flex items-center gap-2 ml-6">
                     <MapPin className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
-                      {project.masonryCompany.address}
+                      {project.masonryCompany.street || project.masonryCompany.address}
                       {project.masonryCompany.city
                         ? `, ${project.masonryCompany.city}`
                         : ''}
